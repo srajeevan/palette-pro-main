@@ -1,0 +1,6 @@
+import { useEffect } from 'react';
+
+// ... inside the component
+useEffect(() => {
+  console.log('Rendering PickerScreen. imageUri:', imageUri);
+}, [imageUri]);
