@@ -16,7 +16,7 @@ export const SquintControls = ({ blurIntensity, setBlurIntensity, maxBlur }: Squ
             {/* Header Row */}
             <View style={styles.headerRow}>
                 <View style={styles.titleContainer}>
-                    <Eye size={18} color="#78716c" />
+                    <Eye size={18} color="#A1A1AA" />
                     <AppText style={styles.title}>Blur Intensity</AppText>
                 </View>
                 <AppText style={styles.value}>
@@ -32,9 +32,9 @@ export const SquintControls = ({ blurIntensity, setBlurIntensity, maxBlur }: Squ
                     maximumValue={maxBlur}
                     value={blurIntensity}
                     onValueChange={setBlurIntensity}
-                    minimumTrackTintColor="#1A1A1A" // Active Color: Black/Dark Gray
-                    maximumTrackTintColor="#E0E0E0" // Inactive Color: Light Gray
-                    thumbTintColor="#1A1A1A" // Minimalist solid black thumb
+                    minimumTrackTintColor="#FFFFFF" // Active Color: White
+                    maximumTrackTintColor="#28282A" // Inactive Color: Dark Gray
+                    thumbTintColor="#FFFFFF" // White thumb
                 />
             </View>
 
@@ -50,25 +50,20 @@ export const SquintControls = ({ blurIntensity, setBlurIntensity, maxBlur }: Squ
 
 const styles = StyleSheet.create({
     card: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#161618', // Surface L1
         borderRadius: 24,
-        marginHorizontal: 16,
         padding: 24,
+        borderWidth: 1,
+        borderColor: '#28282A',
         // Floating Card Shadow
         shadowColor: "#000",
         shadowOffset: {
             width: 0,
             height: 4,
         },
-        shadowOpacity: 0.08,
+        shadowOpacity: 0.3,
         shadowRadius: 10,
         elevation: 5,
-        marginTop: -40, // Pull up to overlap slightly with canvas or sit tight against it if needed. 
-        // Actually, prompt says "sit nicely above navbar". 
-        // Let's stick to standard marginTop for now, or maybe 16 to separate from canvas.
-        // Prompt says "Integration: Place... at the bottom of content area".
-        // I'll leave margin handling to the parent or standard flow.
-        marginBottom: 10, // Slight breathing room
     },
     headerRow: {
         flexDirection: 'row',
@@ -83,26 +78,31 @@ const styles = StyleSheet.create({
     },
     title: {
         fontFamily: 'Inter_500Medium',
-        color: '#44403c', // Stone-700ish
+        color: '#A1A1AA', // Zinc-400
         fontSize: 14,
     },
     value: {
         fontFamily: 'Inter_700Bold',
-        color: '#1A1A1A',
+        color: '#FFFFFF', // White
         fontSize: 14,
+        textShadowColor: 'rgba(62, 99, 221, 0.6)', // Electric Cobalt Halo
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 8,
     },
     sliderContainer: {
         marginBottom: 20,
     },
     infoBox: {
-        backgroundColor: '#F9F9F9',
+        backgroundColor: '#1C1C1E', // Slightly lighter inner box
         borderRadius: 12,
         padding: 12,
+        borderWidth: 1,
+        borderColor: '#28282A',
     },
     infoText: {
         fontFamily: 'Inter_400Regular',
         fontSize: 12,
-        color: '#666',
+        color: '#A1A1AA',
         lineHeight: 18,
         textAlign: 'center',
     },

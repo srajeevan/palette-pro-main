@@ -63,12 +63,12 @@ export const PaletteSwatch = ({ color, onPress, onLongPress, index }: PaletteSwa
             >
                 <Animated.View
                     style={[
-                        styles.swatch,
-                        { backgroundColor: color },
+                        styles.tileContainer,
                         animatedStyle
                     ]}
                 >
-                    <View style={styles.content}>
+                    {/* The Swatch with Text Overlay */}
+                    <View style={[styles.swatch, { backgroundColor: color }]}>
                         <Text style={[styles.hexText, { color: textColor }]}>
                             {color.toUpperCase()}
                         </Text>
@@ -80,50 +80,51 @@ export const PaletteSwatch = ({ color, onPress, onLongPress, index }: PaletteSwa
 };
 
 const styles = StyleSheet.create({
-    swatch: {
+    tileContainer: {
         width: 80,
-        height: 80,
+        height: 80, // Square again for cleaner tile look
         margin: 8,
         borderRadius: 16,
+        backgroundColor: '#1C1C1E',
+        borderWidth: 1,
+        borderColor: '#28282A', // Subtle border
+        overflow: 'hidden',
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 3.84,
-        elevation: 5,
-        borderWidth: 3,
-        borderColor: 'white',
-        justifyContent: 'center',
-        alignItems: 'center',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
     },
-    content: {
+    swatch: {
+        flex: 1,
+        width: '100%',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 4,
     },
     hexText: {
-        fontSize: 9,
+        fontSize: 11,
         fontWeight: 'bold',
         fontFamily: 'monospace',
         textAlign: 'center',
+        opacity: 0.9,
     },
     tooltip: {
         position: 'absolute',
-        top: -20, // Position above the swatch
+        top: -10,
         zIndex: 10,
-        backgroundColor: '#1A1A1A',
+        backgroundColor: '#3E63DD', // Electric Cobalt
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 20,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 5,
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
     },
     tooltipText: {
         color: 'white',
         fontSize: 10,
-        fontFamily: 'Inter_700Bold', // Using the bold font we loaded
+        fontFamily: 'Inter_700Bold',
         textAlign: 'center',
     }
 });

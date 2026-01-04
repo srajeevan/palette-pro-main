@@ -61,14 +61,14 @@ export const SettingsModal = ({ visible, onClose }: SettingsModalProps) => {
                             <AppText style={styles.groupTitle}>PREFERENCES</AppText>
                             <SettingsRow
                                 label="Appearance"
-                                icon={<Moon size={20} color="#333" />}
+                                icon={<Moon size={20} />}
                                 type="toggle"
                                 value={darkMode}
                                 onToggle={setDarkMode}
                             />
                             <SettingsRow
                                 label="Haptic Feedback"
-                                icon={<Zap size={20} color="#333" />}
+                                icon={<Zap size={20} />}
                                 type="toggle"
                                 value={haptics}
                                 onToggle={setHaptics}
@@ -80,19 +80,19 @@ export const SettingsModal = ({ visible, onClose }: SettingsModalProps) => {
                             <AppText style={styles.groupTitle}>SUPPORT</AppText>
                             <SettingsRow
                                 label="Help & FAQ"
-                                icon={<HelpCircle size={20} color="#333" />}
+                                icon={<HelpCircle size={20} />}
                                 type="link"
                                 onPress={() => { }}
                             />
                             <SettingsRow
                                 label="Privacy Policy"
-                                icon={<Lock size={20} color="#333" />}
+                                icon={<Lock size={20} />}
                                 type="link"
                                 onPress={() => { }}
                             />
                             <SettingsRow
                                 label="Log Out"
-                                icon={<LogOut size={20} color="#EF4444" />}
+                                icon={<LogOut size={20} />}
                                 type="destructive"
                                 onPress={signOut}
                             />
@@ -117,10 +117,10 @@ const styles = StyleSheet.create({
     },
     dimmedLayer: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.6)', // Slightly darker overlay
     },
     sheet: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#161618', // Surface L1
         borderTopLeftRadius: 32,
         borderTopRightRadius: 32,
         height: '75%',
@@ -128,9 +128,11 @@ const styles = StyleSheet.create({
         paddingTop: 12,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.3,
         shadowRadius: 12,
         elevation: 10,
+        borderTopWidth: 1,
+        borderTopColor: '#28282A',
     },
     header: {
         alignItems: 'center',
@@ -140,13 +142,13 @@ const styles = StyleSheet.create({
         width: 40,
         height: 5,
         borderRadius: 2.5,
-        backgroundColor: '#E5E5E5',
+        backgroundColor: '#3F3F46', // Zinc-700
         marginBottom: 20,
     },
     title: {
         fontFamily: 'PlayfairDisplay_700Bold',
         fontSize: 28,
-        color: '#1A1A1A',
+        color: '#FFFFFF', // White
         marginBottom: 16,
     },
     scrollContent: {
@@ -157,9 +159,9 @@ const styles = StyleSheet.create({
         marginBottom: 32,
     },
     groupTitle: {
-        fontFamily: 'Inter_700Bold', // Or Medium/Bold
+        fontFamily: 'Inter_700Bold',
         fontSize: 12,
-        color: '#8E8E93',
+        color: '#A1A1AA', // Zinc-400
         marginBottom: 8,
         marginLeft: 4,
         letterSpacing: 0.5,

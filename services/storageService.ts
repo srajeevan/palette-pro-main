@@ -9,7 +9,7 @@ export async function uploadReferenceImage(uri: string, userId: string): Promise
         const path = `${userId}/${timestamp}.${fileExtension}`;
 
         const base64 = await FileSystem.readAsStringAsync(uri, {
-            encoding: FileSystem.EncodingType.Base64,
+            encoding: 'base64',
         });
 
         const { data, error } = await supabase.storage

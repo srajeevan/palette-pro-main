@@ -17,15 +17,19 @@ interface ColorPointerProps {
     hex?: string;
     rgb?: string;
     onPress?: () => void;
+    onInteractionStart?: () => void;
+    onInteractionEnd?: () => void;
 }
 
-const POINTER_SIZE = 60;
+const POINTER_SIZE = 80;
 const HALF_POINTER = POINTER_SIZE / 2;
 
 export const ColorPointer = ({
     canvasWidth,
     canvasHeight,
     onColorChange,
+    onInteractionStart,
+    onInteractionEnd,
 }: ColorPointerProps) => {
     // Start in the center
     const translateX = useSharedValue(canvasWidth / 2 - HALF_POINTER);
@@ -38,6 +42,7 @@ export const ColorPointer = ({
 
     const pan = Gesture.Pan()
         .onStart(() => {
+            if (onInteractionStart) runOnJS(onInteractionStart)();
             context.value = { x: translateX.value, y: translateY.value };
             scale.value = withSpring(1.2);
         })
@@ -68,6 +73,7 @@ export const ColorPointer = ({
             }
         })
         .onEnd(() => {
+            if (onInteractionEnd) runOnJS(onInteractionEnd)();
             scale.value = withSpring(1);
         });
 
@@ -93,34 +99,30 @@ export const ColorPointer = ({
 
 const styles = StyleSheet.create({
     pointer: {
-        width: POINTER_SIZE,
-        height: POINTER_SIZE,
-        borderRadius: POINTER_SIZE / 2,
+        width: 80,
+        height: 80,
+        borderRadius: 40,
         borderWidth: 2,
-        borderColor: 'white',
+        borderColor: '#FFFFFF',
         position: 'absolute',
         top: 0,
         left: 0,
         justifyContent: 'center',
         alignItems: 'center',
+        // Inner Glow / Shadow
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 5,
-        backgroundColor: 'rgba(255,255,255,0.2)', // Transparent fill
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.5,
+        shadowRadius: 8,
+        elevation: 8,
+        backgroundColor: 'rgba(255,255,255,0.05)', // Very subtle fill
         zIndex: 100,
     },
+    // Removed Crosshairs
     crosshairVertical: {
-        width: 1,
-        height: 14,
-        backgroundColor: '#ef4444', // Red
-        position: 'absolute',
+        width: 0, height: 0
     },
     crosshairHorizontal: {
-        width: 14,
-        height: 1,
-        backgroundColor: '#ef4444', // Red
-        position: 'absolute',
+        width: 0, height: 0
     },
 });

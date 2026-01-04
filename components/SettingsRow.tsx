@@ -38,33 +38,36 @@ export const SettingsRow = ({
     return (
         <TouchableOpacity
             onPress={handlePress}
+            onPress={onPress}
+            disabled={type === 'toggle'}
             activeOpacity={0.7}
-            disabled={type === 'toggle' && !onToggle} // Disable touch if no handler, though Switch handles its own too
             style={styles.container}
         >
             <View style={styles.leftContent}>
-                {/* Icon wrapper if needed, or direct node */}
                 <View style={styles.iconContainer}>
-                    {icon}
+                    {/* Clone icon to enforce color if needed, or rely on parent passing correct color */}
+                    {React.cloneElement(icon as React.ReactElement, { color: type === 'destructive' ? '#EF4444' : '#A1A1AA' })}
                 </View>
-                <AppText style={[styles.label, isDestructive && styles.destructiveLabel]}>
+                <AppText style={[
+                    styles.label,
+                    type === 'destructive' && styles.destructiveLabel
+                ]}>
                     {label}
                 </AppText>
             </View>
 
             <View style={styles.rightContent}>
-                {type === 'link' && (
-                    <ChevronRight size={20} color="#C7C7CC" />
-                )}
-
                 {type === 'toggle' && (
                     <Switch
                         value={value}
                         onValueChange={onToggle}
-                        trackColor={{ false: '#E9E9EA', true: '#1A1A1A' }}
-                        thumbColor="#FFFFFF"
-                        ios_backgroundColor="#E9E9EA"
+                        trackColor={{ false: '#28282A', true: '#3E63DD' }}
+                        thumbColor={'#FFFFFF'}
+                        ios_backgroundColor="#28282A"
                     />
+                )}
+                {type === 'link' && (
+                    <ChevronRight size={20} color="#52525B" />
                 )}
             </View>
         </TouchableOpacity>
@@ -77,9 +80,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingVertical: 16,
-        paddingHorizontal: 4,
         borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
+        borderBottomColor: '#28282A', // Dark separator
     },
     leftContent: {
         flexDirection: 'row',
@@ -87,18 +89,17 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     iconContainer: {
-        // Optional sizing or alignment
+        // Optional: layout for icon alignment
     },
     label: {
         fontFamily: 'Inter_500Medium',
         fontSize: 16,
-        color: '#333333',
+        color: '#FFFFFF', // White text
     },
     destructiveLabel: {
-        color: '#EF4444', // Red-500
+        color: '#EF4444',
     },
     rightContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    }
+        //
+    },
 });

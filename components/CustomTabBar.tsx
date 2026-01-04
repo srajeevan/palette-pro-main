@@ -97,7 +97,13 @@ export const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarPro
             style={[styles.container, { bottom: insets.bottom + 20 }]}
             onLayout={(e) => setLayout(e.nativeEvent.layout)}
         >
-            {/* Animated Indicator */}
+            {/* Dark Glass Background via BlurView is hard to do with absolute positioning on just the container if we want strict border control.
+                Instead, we'll use a semi-transparent view with backdrop blur if available, or just the color.
+                React Native BlurView needs to wrap content or be absolute filled.
+                Let's wrap the whole inner content in a View that simulates the surface.
+             */}
+
+            {/* Active Indicator (Glow) */}
             {layout.width > 0 && (
                 <Animated.View
                     style={[
@@ -135,6 +141,9 @@ export const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarPro
                     });
                 };
 
+                // Active: Electric Cobalt #3E63DD, Inactive: #525255
+                const iconColor = isFocused ? '#3E63DD' : '#525255';
+
                 return (
                     <TabItem
                         key={route.key}
@@ -143,7 +152,7 @@ export const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarPro
                         options={options}
                         onPress={onPress}
                         onLongPress={onLongPress}
-                        icon={getIcon(route.name, isFocused ? '#1A1A1A' : '#A1A1A1')}
+                        icon={getIcon(route.name, iconColor)}
                     />
                 );
             })}
@@ -156,27 +165,27 @@ const styles = StyleSheet.create({
         position: 'absolute',
         left: 20,
         right: 20,
-        height: 65,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        borderRadius: 35,
+        height: 72, // Slightly taller for touch targets
+        backgroundColor: 'rgba(22, 22, 24, 0.85)', // #161618 @ 85%
+        borderRadius: 36, // Pill
+        borderWidth: 1,
+        borderColor: 'rgba(62, 99, 221, 0.2)', // #3E63DD @ 20%
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 10,
-        // Shadow for iOS
+        // Shadow for "Hover" feel
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.15,
+        shadowOpacity: 0.3,
         shadowRadius: 20,
-        // Elevation for Android
-        elevation: 10,
+        elevation: 12,
     },
     tabItem: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        height: 50,
-        width: 50,
+        height: 60,
     },
     indicator: {
         position: 'absolute',
@@ -187,9 +196,15 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     indicatorInner: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        backgroundColor: '#F2F2F7',
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        // Active Glow Effect
+        backgroundColor: 'rgba(62, 99, 221, 0.15)', // Subtle Cobalt fill
+        shadowColor: '#00FFFF', // Cyan Outer Bloom
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.4,
+        shadowRadius: 12,
+        // We'll mimic the bloom with shadow
     },
 });

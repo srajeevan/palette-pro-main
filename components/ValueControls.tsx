@@ -26,15 +26,15 @@ export const ValueControls = ({
             {/* Row 1: Grayscale Toggle */}
             <View style={styles.row}>
                 <View style={styles.labelContainer}>
-                    <Layers size={18} color="#78716c" />
+                    <Layers size={18} color="#A1A1AA" />
                     <AppText style={styles.label}>Grayscale Mode</AppText>
                 </View>
                 <Switch
                     value={grayscaleEnabled}
                     onValueChange={setGrayscaleEnabled}
-                    trackColor={{ false: '#E0E0E0', true: '#1A1A1A' }}
+                    trackColor={{ false: '#28282A', true: '#3E63DD' }} // Dark track, Cobalt active
                     thumbColor={'#FFFFFF'}
-                    ios_backgroundColor="#E0E0E0"
+                    ios_backgroundColor="#28282A"
                 />
             </View>
 
@@ -57,9 +57,9 @@ export const ValueControls = ({
                     step={1}
                     value={posterizeLevels}
                     onValueChange={setPosterizeLevels}
-                    minimumTrackTintColor="#1A1A1A"
-                    maximumTrackTintColor="#E0E0E0"
-                    thumbTintColor="#1A1A1A"
+                    minimumTrackTintColor="#FFFFFF" // Active: White
+                    maximumTrackTintColor="#28282A" // Inactive: Dark
+                    thumbTintColor="#FFFFFF"
                 />
             </View>
         </View>
@@ -68,17 +68,18 @@ export const ValueControls = ({
 
 const styles = StyleSheet.create({
     card: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#161618', // Surface L1
         borderRadius: 24,
-        marginHorizontal: 16,
-        padding: 20,
+        padding: 24,
+        borderWidth: 1,
+        borderColor: '#28282A',
         // Floating Card Shadow
         shadowColor: "#000",
         shadowOffset: {
             width: 0,
             height: 4,
         },
-        shadowOpacity: 0.08,
+        shadowOpacity: 0.3,
         shadowRadius: 10,
         elevation: 5,
         marginBottom: 10,
@@ -96,16 +97,19 @@ const styles = StyleSheet.create({
     label: {
         fontFamily: 'Inter_500Medium',
         fontSize: 14,
-        color: '#333',
+        color: '#A1A1AA', // Zinc-400
     },
     value: {
         fontFamily: 'Inter_700Bold',
         fontSize: 14,
-        color: '#1A1A1A',
+        color: '#FFFFFF',
+        textShadowColor: 'rgba(62, 99, 221, 0.6)',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 8,
     },
     separator: {
         height: 1,
-        backgroundColor: '#F5F5F5',
+        backgroundColor: '#28282A',
         marginVertical: 16,
     },
     sliderSection: {

@@ -2,34 +2,62 @@ import { AppButton } from '@/components/AppButton';
 import { AppText } from '@/components/AppText';
 import { GalleryCard, GalleryItem } from '@/components/GalleryCard';
 import { GuestSyncCard } from '@/components/GuestSyncCard';
-import { ShareCardGeneratorRef } from '@/components/ShareCardGenerator';
+import { ShareCardGenerator, ShareCardGeneratorRef } from '@/components/ShareCardGenerator';
 import { useAuth } from '@/context/AuthContext';
+import { loadPalettes } from '@/services/paletteService';
+import { useFocusEffect } from 'expo-router';
 import { Palette, Settings } from 'lucide-react-native';
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { FlatList, Share as NativeShare, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GalleryDetailModal } from '@/components/GalleryDetailModal';
 import { SettingsModal } from '@/components/SettingsModal';
-import { ShareCardGenerator } from '@/components/ShareCardGenerator';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
+
+
+// ... (imports)
 
 export default function ProfileScreen() {
     const { user, loading, isGuest, signOut } = useAuth();
 
     // State
+    const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
+    const [loadingPalettes, setLoadingPalettes] = useState(false);
     const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
     const [showSettings, setShowSettings] = useState(false);
     const detailModalRef = useRef<BottomSheetModal>(null);
     const shareGeneratorRef = useRef<ShareCardGeneratorRef>(null);
 
-    // Mock Data for Gallery (Will replace with real data later)
-    // Adding placeholder mock data for testing UI
-    const galleryItems: GalleryItem[] = [
-        { id: '1', imageUrl: 'https://picsum.photos/400/500', colors: ['#2F3E46', '#354F52', '#52796F', '#84A98C', '#CAD2C5'] },
-        { id: '2', imageUrl: 'https://picsum.photos/400/501', colors: ['#E63946', '#F1FAEE', '#A8DADC', '#457B9D', '#1D3557'] },
-        { id: '3', imageUrl: 'https://picsum.photos/400/502', colors: ['#606C38', '#283618', '#FEFAE0', '#DDA15E', '#BC6C25'] },
-    ];
+    // Fetch on focus to get updates from Studio
+    useFocusEffect(
+        useCallback(() => {
+            if (user) {
+                fetchPalettes();
+            }
+        }, [user])
+    );
+
+    const fetchPalettes = async () => {
+        setLoadingPalettes(true);
+        try {
+            const { data, error } = await loadPalettes();
+            if (error) {
+                console.error('Error loading palettes:', error);
+            } else if (data) {
+                const items: GalleryItem[] = data.map(p => ({
+                    id: p.id,
+                    imageUrl: p.image_url || 'https://via.placeholder.com/400', // Fallback
+                    colors: p.colors
+                }));
+                setGalleryItems(items);
+            }
+        } catch (e) {
+            console.error('Exception loading palettes:', e);
+        } finally {
+            setLoadingPalettes(false);
+        }
+    };
 
     const handleCardPress = (item: GalleryItem) => {
         setSelectedItem(item);
@@ -57,19 +85,22 @@ export default function ProfileScreen() {
     }
 
     const renderHeader = () => (
-        <View className="px-4 pt-2 pb-6">
+        <View className="px-6 pt-2 pb-6">
             {/* Header Row */}
             <View className="flex-row justify-between items-start mb-6">
                 <View>
-                    <AppText style={{ fontFamily: 'PlayfairDisplay_700Bold', color: '#1A1A1A' }} className="text-3xl">
+                    <AppText style={{ fontFamily: 'PlayfairDisplay_700Bold', color: '#FFFFFF' }} className="text-3xl">
                         {isGuest ? "Guest Artist" : user?.email?.split('@')[0] || "Artist"}
                     </AppText>
-                    <AppText style={{ fontFamily: 'Inter_500Medium', color: '#78716c' }} className="text-base mt-2">
+                    <AppText style={{ fontFamily: 'Inter_500Medium', color: '#A1A1AA' }} className="text-base mt-2">
                         Member since 2024 • {galleryItems.length} Palettes Created
                     </AppText>
                 </View>
-                <Pressable onPress={() => setShowSettings(true)} className="p-2 bg-white rounded-full border border-stone-200 shadow-sm">
-                    <Settings size={20} color="#57534e" />
+                <Pressable
+                    onPress={() => setShowSettings(true)}
+                    className="w-10 h-10 items-center justify-center rounded-full bg-[#1C1C1E] border border-[#28282A]"
+                >
+                    <Settings size={20} color="#A1A1AA" />
                 </Pressable>
             </View>
 
@@ -82,19 +113,26 @@ export default function ProfileScreen() {
 
     const renderEmptyState = () => (
         <View className="flex-1 justify-center items-center py-20 px-6">
-            <View className="items-center justify-center p-8 bg-white rounded-full h-40 w-40 border-2 border-dashed border-stone-200 mb-6">
-                <Palette size={48} color="#d6d3d1" />
+            <View
+                className="items-center justify-center p-8 rounded-full h-40 w-40 mb-6"
+                style={{
+                    borderWidth: 2,
+                    borderColor: '#28282A',
+                    borderStyle: 'dashed',
+                }}
+            >
+                <Palette size={40} color="#52525B" />
             </View>
-            <AppText style={{ fontFamily: 'PlayfairDisplay_700Bold', color: '#1A1A1A' }} className="text-2xl text-center mb-2">
+            <AppText style={{ fontFamily: 'PlayfairDisplay_700Bold', color: '#FFFFFF' }} className="text-2xl text-center mb-2">
                 Your studio is empty.
             </AppText>
-            <AppText className="text-stone-500 text-center mb-8">
-                Start mixing colors to populate your gallery.
+            <AppText style={{ fontFamily: 'Times New Roman', fontStyle: 'italic' }} className="text-[#A1A1AA] text-lg text-center mb-8 px-4">
+                "Your journey begins with a single reference."
             </AppText>
             <View className="w-48">
                 <AppButton
                     title="Start Mixing"
-                    onPress={() => {/* TODO: Navigate to Picker */ }}
+                    onPress={() => router.push('/(tabs)/palette')}
                     variant="primary"
                 />
             </View>
@@ -102,7 +140,7 @@ export default function ProfileScreen() {
     );
 
     return (
-        <SafeAreaView className="flex-1 bg-stone-100" edges={['top']}>
+        <SafeAreaView className="flex-1 bg-[#0A0A0B]" edges={['top']}>
             <FlatList
                 data={galleryItems}
                 keyExtractor={(item) => item.id}
@@ -116,6 +154,7 @@ export default function ProfileScreen() {
                 ListEmptyComponent={renderEmptyState}
                 contentContainerStyle={{ paddingBottom: 120, flexGrow: 1 }}
                 columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 16 }}
+                showsVerticalScrollIndicator={false}
             />
 
             {/* Detail Modal */}

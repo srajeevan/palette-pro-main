@@ -6,25 +6,29 @@ module.exports = {
     extend: {
       colors: {
         'neutral-artist': {
-          50: '#fafaf9', // stone-50
-          100: '#f5f5f4', // stone-100
-          200: '#e7e5e4', // stone-200
-          300: '#d6d3d1', // stone-300
-          400: '#a8a29e', // stone-400
-          500: '#78716c', // stone-500
-          600: '#57534e', // stone-600
-          700: '#44403c', // stone-700
-          800: '#292524', // stone-800
-          900: '#1c1917', // stone-900
+          50: '#fafaf9',
+          100: '#f5f5f4',
+          200: '#e7e5e4',
+          300: '#d6d3d1',
+          400: '#a8a29e',
+          500: '#78716c',
+          600: '#57534e',
+          700: '#44403c',
+          800: '#1C1C1E', // Surface L2
+          900: '#0A0A0B', // Rich Obsidian (Global Bg)
         },
         'primary-ui': {
-          DEFAULT: '#18181b', // zinc-900
-          foreground: '#f4f4f5', // zinc-100
+          DEFAULT: '#3E63DD', // Electric Cobalt
+          foreground: '#FFFFFF',
         },
         'paint-accent': {
-          DEFAULT: '#e07a5f', // soft terracotta
-          dark: '#c45a3f',
-        }
+          DEFAULT: '#D1FF52', // Volt Green (High Pop)
+          dark: '#b3db3d',
+        },
+        'obsidian': '#0A0A0B',
+        'surface-l1': '#161618', // Navigation Background
+        'surface-l2': '#1C1C1E', // Card Background
+        'border-midnight': '#28282A',
       },
     },
   },

@@ -1,3 +1,4 @@
+import { getContrastColor } from '@/utils/colorUtils';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -17,15 +18,25 @@ export const ColorComparisonBar: React.FC<ColorComparisonBarProps> = ({
     // Or just white text with shadow if dark, black if light. 
     // Let's use a pill for guaranteed legibility.
 
+    const textColor = getContrastColor(color);
+
     return (
         <TouchableOpacity
             activeOpacity={0.9}
             onPress={onPress}
             style={[styles.container, { backgroundColor: color }]}
         >
-            <View style={styles.textPill}>
-                <Text className="text-stone-300 ml-2 text-xs tracking-wider" style={{ fontFamily: 'Inter_500Medium' }}>
-                    HEX: {color}  |  RGB: {rgb}
+            <View style={[styles.textPill, { borderColor: textColor + '40' }]}>
+                <Text
+                    style={{
+                        fontFamily: 'monospace', // Using system monospace or 'Courier'
+                        color: textColor,
+                        fontSize: 12,
+                        fontWeight: '600',
+                        letterSpacing: 0.5
+                    }}
+                >
+                    {color}  |  RGB: {rgb}
                 </Text>
             </View>
         </TouchableOpacity>

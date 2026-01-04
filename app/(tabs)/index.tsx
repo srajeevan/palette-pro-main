@@ -1,6 +1,5 @@
 import { AppHeader } from '@/components/AppHeader';
 import { AppText } from '@/components/AppText';
-import { ColorComparisonBar } from '@/components/ColorComparisonBar';
 import { ColorPointer } from '@/components/ColorPointer';
 import { ColorSkiaCanvas, ColorSkiaCanvasRef } from '@/components/ColorSkiaCanvas';
 import { MixingRecipeModal } from '@/components/MixingRecipeModal';
@@ -8,16 +7,19 @@ import { UploadBottomSheet } from '@/components/UploadBottomSheet';
 import { UploadPlaceholderView } from '@/components/UploadPlaceholderView';
 import { useImagePicker } from '@/services/useImagePicker';
 import { useProjectStore } from '@/store/useProjectStore';
+import { getContrastColor } from '@/utils/colorUtils';
 import { calculateMix, MixResult } from '@/utils/mixingEngine';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { ImagePlus } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
-import { Dimensions, Pressable, StyleSheet, View } from 'react-native';
+import { Dimensions, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 // Default initial dimensions until measurement
 const INITIAL_WIDTH = SCREEN_WIDTH;
@@ -103,6 +105,15 @@ export default function PickerScreen() {
     }
   };
 
+  // Interaction State
+  const isInteracting = useSharedValue(0); // 0 = false, 1 = true
+
+  const footerStyle = useAnimatedStyle(() => {
+    return {
+      opacity: withSpring(isInteracting.value ? 1 : 0.4, { damping: 20, stiffness: 90 })
+    };
+  });
+
   const handlePresentUploadModal = () => {
     bottomSheetRef.current?.present();
   };
@@ -112,14 +123,14 @@ export default function PickerScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f5f5f4' }}>
+    <View style={{ flex: 1, backgroundColor: '#0A0A0B' }}>
       {!imageUri && (
         <Animated.View
           entering={FadeIn.duration(800)}
           exiting={FadeOut.duration(800)}
           style={[StyleSheet.absoluteFill, { zIndex: 1 }]}
         >
-          <SafeAreaView className="flex-1 bg-stone-100">
+          <SafeAreaView className="flex-1 bg-[#0A0A0B]">
             <View className="flex-1 px-6 pt-10">
               <AppHeader
                 title="Studio"
@@ -142,26 +153,37 @@ export default function PickerScreen() {
           exiting={FadeOut.duration(800)}
           style={[StyleSheet.absoluteFill, { zIndex: 0 }]}
         >
-          <SafeAreaView className="flex-1 bg-stone-100" edges={['top', 'bottom']}>
+          <SafeAreaView className="flex-1 bg-[#0A0A0B]" edges={['top', 'bottom']}>
             <View className="flex-1 p-0" style={{ paddingBottom: 110 }}>
-              {/* Compact Header */}
-              <View className="px-6 pt-2 pb-2 flex-row justify-between items-center z-10 bg-stone-100 border-b border-stone-200">
-                <View className="flex-row items-baseline space-x-2">
-                  <AppText style={{ fontFamily: 'PlayfairDisplay_700Bold', color: '#1A1A1A' }} className="text-2xl">Studio</AppText>
-                  <AppText style={{ fontFamily: 'Inter_400Regular', color: '#9ca3af' }} className="text-xs">Pick & Mix</AppText>
-                </View>
+              {/* Standardized Header (Midnight) with exact 24pt spacing */}
+              <AppHeader
+                title="Studio"
+                subtitle="Pick & Mix"
+                className="mb-6" // 24pt margin (mb-6 = 24px)
+              />
+              <View className="absolute top-8 right-6 z-50">
                 <Pressable
                   onPress={handlePresentUploadModal}
-                  className="p-2 bg-white rounded-full border border-stone-200 shadow-sm active:opacity-70"
+                  className="w-10 h-10 items-center justify-center rounded-full bg-[#1C1C1E] border border-[#28282A] active:opacity-70"
                 >
-                  <ImagePlus size={20} color="#57534e" />
+                  <ImagePlus size={20} color="#FFFFFF" />
                 </Pressable>
               </View>
 
-              {/* Main Canvas Area */}
-              <View style={{ flex: 1, overflow: 'hidden' }} className="relative bg-[#1A1A1A]">
+              {/* Unified Image & Metadata Container */}
+              <View
+                className="flex-1 mx-4 mb-4"
+                style={{
+                  borderRadius: 20,
+                  overflow: 'hidden',
+                  borderWidth: 1,
+                  borderColor: '#28282A', // Outer border for the whole unit
+                  backgroundColor: '#161618',
+                }}
+              >
+                {/* Image Area */}
                 <View
-                  style={{ flex: 1 }}
+                  style={{ flex: 1, backgroundColor: '#0A0A0B', overflow: 'hidden' }}
                   onLayout={(event) => {
                     const { width, height } = event.nativeEvent.layout;
                     setCanvasLayout({ width, height });
@@ -181,16 +203,53 @@ export default function PickerScreen() {
                     canvasWidth={canvasLayout.width}
                     canvasHeight={canvasLayout.height}
                     onColorChange={handleColorChange}
+                    onInteractionStart={() => { isInteracting.value = 1; }}
+                    onInteractionEnd={() => { isInteracting.value = 0; }}
                   />
                 </View>
-              </View>
 
-              {/* Bottom Comparison Bar */}
-              <ColorComparisonBar
-                color={pickedColor}
-                rgb={`${pickedRgb.r}, ${pickedRgb.g}, ${pickedRgb.b}`}
-                onPress={handlePresentRecipeModal}
-              />
+                {/* Technical Metadata Footer / Comparison Deck */}
+                <AnimatedPressable
+                  onPress={handlePresentRecipeModal}
+                  style={[{
+                    height: 64, // Taller (64pt) for easier physical comparison
+                    backgroundColor: pickedColor, // The Footer IS the Swatch
+                    borderTopWidth: 1,
+                    borderTopColor: 'rgba(0,0,0,0.1)',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    paddingHorizontal: 16,
+                  }, footerStyle]}
+                >
+                  {/* Adaptive Text Color */}
+                  {(() => {
+                    const textColor = getContrastColor(pickedColor);
+                    const separatorColor = textColor === '#FFFFFF' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)';
+                    const labelColor = textColor === '#FFFFFF' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)';
+
+                    return (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <AppText style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 13, color: labelColor }}>HEX </AppText>
+                          <AppText style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 14, fontWeight: '600', color: textColor, letterSpacing: 1 }}>
+                            {pickedColor.toUpperCase()}
+                          </AppText>
+                        </View>
+
+                        <View style={{ width: 1, height: 16, backgroundColor: separatorColor, marginHorizontal: 16 }} />
+
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <AppText style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 13, color: labelColor }}>RGB </AppText>
+                          <AppText style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 14, fontWeight: '600', color: textColor, letterSpacing: 1 }}>
+                            {`${pickedRgb.r}, ${pickedRgb.g}, ${pickedRgb.b}`}
+                          </AppText>
+                        </View>
+                      </View>
+                    );
+                  })()}
+                </AnimatedPressable>
+              </View>
 
               <UploadBottomSheet
                 ref={bottomSheetRef}

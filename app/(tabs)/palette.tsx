@@ -1,10 +1,9 @@
-import { AppButton } from '@/components/AppButton';
 import { AppHeader } from '@/components/AppHeader';
 import { AppText } from '@/components/AppText';
 import { ColorSkiaCanvas, ColorSkiaCanvasRef } from '@/components/ColorSkiaCanvas';
-import { MixingNotesInput } from '@/components/MixingNotesInput';
 import { MixingRecipeBottomSheet } from '@/components/MixingRecipeBottomSheet';
 import { PaletteSwatch } from '@/components/PaletteSwatch';
+import { UploadPlaceholderView } from '@/components/UploadPlaceholderView';
 import { useAuth } from '@/context/AuthContext';
 import { savePalette } from '@/services/paletteService';
 import { useImagePicker } from '@/services/useImagePicker';
@@ -13,7 +12,7 @@ import { generatePalette } from '@/utils/paletteEngine';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { Image as ImageIcon, RefreshCw, Save } from 'lucide-react-native';
+import { RefreshCw, Save } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, ScrollView, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -44,7 +43,6 @@ export default function PaletteScreen() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [selectedColor, setSelectedColor] = useState<string | null>(null);
-    const [notes, setNotes] = useState('');
 
     // Auto-generate palette on image load if empty
     React.useEffect(() => {
@@ -202,27 +200,14 @@ export default function PaletteScreen() {
 
     if (!imageUri) {
         return (
-            <SafeAreaView className="flex-1 bg-stone-100">
+            <SafeAreaView className="flex-1 bg-[#0A0A0B]">
                 <View className="flex-1 px-6 pt-10">
                     <AppHeader
                         title="Palette Generator"
                         subtitle="Extract colors from your image."
                     />
-                    <View className="flex-1 justify-center items-center">
-                        <ImageIcon size={48} color="#d6d3d1" />
-                        <AppText className="text-stone-400 mt-4 text-center font-medium">
-                            Ready to create?
-                        </AppText>
-                        <AppText className="text-stone-400 text-sm text-center mb-6">
-                            Select an image to generate a palette.
-                        </AppText>
-                        <View className="gap-3 w-full">
-                            <AppButton
-                                title="Choose Image"
-                                onPress={pickImage}
-                                variant="primary"
-                            />
-                        </View>
+                    <View className="flex-1 -mt-20">
+                        <UploadPlaceholderView onImageSelected={pickImage} />
                     </View>
                 </View>
             </SafeAreaView>
@@ -230,160 +215,143 @@ export default function PaletteScreen() {
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-stone-100" edges={['top']}>
-            <View className="flex-1 p-0">
-                <View className="px-6 pt-2 pb-2 flex-row justify-between items-center">
-                    <View>
-                        <AppText style={{ fontFamily: 'PlayfairDisplay_700Bold', fontSize: 34, color: '#1A1A1A' }}>Palette</AppText>
-                        <AppText style={{ fontFamily: 'Inter_500Medium', fontSize: 16, color: '#666', letterSpacing: 0.5, marginTop: 4 }}>Analyze</AppText>
-                    </View>
-                    <View className="flex-row items-center space-x-2">
-                        {generatedPalette.length > 0 && (
-                            <TouchableOpacity
-                                onPress={handleSavePalette}
-                                disabled={isSaving}
-                                className={`p-2 rounded-full mr-2 ${isSaving ? 'bg-stone-200' : 'bg-emerald-600'}`}
-                            >
-                                {isSaving ? (
-                                    <ActivityIndicator size="small" color="#666" />
-                                ) : (
-                                    <Save size={20} color="white" />
-                                )}
-                            </TouchableOpacity>
-                        )}
+        <SafeAreaView className="flex-1 bg-[#0A0A0B]" edges={['top']}>
+            <View className="flex-1">
+                {/* Fixed Header */}
+                <AppHeader
+                    title="Palette"
+                    subtitle="ANALYZE"
+                    className="mb-0 z-10 bg-[#0A0A0B]" // Ensure background covers scrolling content if needed, or let content slide under. Actually standard is header on top.
+                />
+
+                {/* Floating Actions (Fixed relative to screen, not scroll) */}
+                <View className="absolute top-8 right-6 flex-row items-center space-x-3 z-50">
+                    {generatedPalette.length > 0 && (
                         <TouchableOpacity
-                            onPress={() => handleGenerate()}
-                            disabled={isGenerating}
-                            style={{
-                                width: 40,
-                                height: 40,
-                                borderRadius: 20,
-                                backgroundColor: 'white',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                shadowColor: '#000',
-                                shadowOpacity: 0.1,
-                                shadowRadius: 4,
-                                elevation: 3,
-                            }}
+                            onPress={handleSavePalette}
+                            disabled={isSaving}
+                            className={`w-10 h-10 items-center justify-center rounded-full border border-[#28282A] ${isSaving ? 'bg-[#1C1C1E]' : 'bg-[#3E63DD]'}`}
                         >
-                            {isGenerating ? <ActivityIndicator size="small" color="#666" /> : <RefreshCw size={20} color="black" />}
+                            {isSaving ? (
+                                <ActivityIndicator size="small" color="#FFF" />
+                            ) : (
+                                <Save size={18} color="white" />
+                            )}
                         </TouchableOpacity>
-                    </View>
+                    )}
+                    <TouchableOpacity
+                        onPress={() => handleGenerate()}
+                        disabled={isGenerating}
+                        className="w-10 h-10 items-center justify-center rounded-full bg-[#1C1C1E] border border-[#28282A]"
+                    >
+                        {isGenerating ? <ActivityIndicator size="small" color="#FFF" /> : <RefreshCw size={18} color="white" />}
+                    </TouchableOpacity>
                 </View>
 
-                {/* Top Half: Image Canvas Container */}
-                <View
-                    style={{
-                        width: CANVAS_WIDTH,
-                        height: CANVAS_HEIGHT,
-                        overflow: 'hidden',
-                        borderBottomLeftRadius: 24,
-                        borderBottomRightRadius: 24,
-                        // Shadow
-                        shadowColor: '#000',
-                        shadowOpacity: 0.1,
-                        shadowRadius: 15,
-                        shadowOffset: { width: 0, height: 10 },
-                        elevation: 5,
-                        backgroundColor: '#E7E5E4', // stone-200
-                        marginBottom: 16,
-                    }}
+                {/* Main Scrollable Content */}
+                <ScrollView
+                    className="flex-1"
+                    contentContainerStyle={{ paddingBottom: 140 }} // Extra padding for dock
+                    showsVerticalScrollIndicator={false}
                 >
-                    <GestureDetector gesture={composedGesture}>
-                        <Animated.View style={[{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }, canvasAnimatedStyle]}>
-                            <ColorSkiaCanvas ref={canvasRef} />
-                        </Animated.View>
-                    </GestureDetector>
-                </View>
+                    {/* Image Canvas Container */}
+                    <View
+                        style={{
+                            width: CANVAS_WIDTH,
+                            height: CANVAS_HEIGHT,
+                            overflow: 'hidden',
+                            borderBottomLeftRadius: 24,
+                            borderBottomRightRadius: 24,
+                            backgroundColor: '#0A0A0B',
+                            marginBottom: 24,
+                            borderWidth: 1,
+                            borderColor: 'rgba(255,255,255,0.1)',
+                        }}
+                    >
+                        <GestureDetector gesture={composedGesture}>
+                            <Animated.View style={[{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }, canvasAnimatedStyle]}>
+                                <ColorSkiaCanvas ref={canvasRef} />
+                            </Animated.View>
+                        </GestureDetector>
+                    </View>
 
-                {/* Bottom Half: Palette Controls & Grid */}
-                <View className="flex-1 bg-white rounded-t-3xl shadow-lg px-6 pt-6">
-                    {/* Controls */}
-                    <View className="mb-6">
-                        {/* Segmented Control Container */}
-                        <View
-                            style={{
-                                flexDirection: 'row',
-                                backgroundColor: '#F2F2F7',
-                                borderRadius: 16,
-                                padding: 4,
-                                height: 50,
-                            }}
-                        >
-                            {/* Animated Active Indicator */}
-                            {/* We need to calculate width dynamically, but for now we can use flex */}
-                            <Animated.View
-                                style={[
-                                    {
-                                        position: 'absolute',
-                                        top: 4,
-                                        bottom: 4,
-                                        left: 4,
-                                        width: (SCREEN_WIDTH - 48 - 8) / 4, // (Screen - padding - innerPadding) / 4 segments
-                                        backgroundColor: 'white',
-                                        borderRadius: 12,
-                                        shadowColor: '#000',
-                                        shadowOpacity: 0.1,
-                                        shadowRadius: 2,
-                                        elevation: 2,
-                                    },
-                                    indicatorAnimatedStyle
-                                ]}
-                            />
+                    {/* Palette Controls & Grid */}
+                    <View className="px-6">
+                        {/* Controls */}
+                        <View className="mb-6">
+                            {/* Segmented Control Container (Dark Recessed) */}
+                            <View
+                                style={{
+                                    flexDirection: 'row',
+                                    backgroundColor: '#161618', // Surface L1
+                                    borderRadius: 16,
+                                    padding: 4,
+                                    height: 56,
+                                    borderWidth: 1,
+                                    borderColor: '#28282A',
+                                }}
+                            >
+                                {/* Active Indicator */}
+                                <Animated.View
+                                    style={[
+                                        {
+                                            position: 'absolute',
+                                            top: 4,
+                                            bottom: 4,
+                                            left: 4,
+                                            width: (SCREEN_WIDTH - 48 - 8) / 4,
+                                            backgroundColor: '#28282A', // Recessed Active State
+                                            borderRadius: 12,
+                                            borderWidth: 1,
+                                            borderColor: 'rgba(255,255,255,0.05)',
+                                        },
+                                        indicatorAnimatedStyle
+                                    ]}
+                                />
 
-                            {[4, 6, 8, 12].map((num) => (
-                                <TouchableOpacity
-                                    key={num}
-                                    onPress={() => handlePresetPress(num)}
-                                    style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
-                                >
-                                    <AppText
-                                        style={{
-                                            fontFamily: colorCount === num ? 'Inter_700Bold' : 'Inter_500Medium',
-                                            color: colorCount === num ? '#000' : '#8E8E93',
-                                            fontSize: 16
-                                        }}
+                                {[4, 6, 8, 12].map((num) => (
+                                    <TouchableOpacity
+                                        key={num}
+                                        onPress={() => handlePresetPress(num)}
+                                        style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
                                     >
-                                        {num}
-                                    </AppText>
-                                </TouchableOpacity>
-                            ))}
+                                        <AppText
+                                            style={{
+                                                fontFamily: 'Inter_700Bold', // Always Bold for tech feel
+                                                color: colorCount === num ? '#FFFFFF' : '#525255',
+                                                fontSize: 16
+                                            }}
+                                        >
+                                            {num}
+                                        </AppText>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+
+                        {/* Grid of Swatches */}
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
+                            {generatedPalette.length === 0 ? (
+                                <View className="items-center justify-center py-10 w-full">
+                                    <AppText className="text-stone-500 text-center">Tap the refresh button above{'\n'}to generate a palette.</AppText>
+                                </View>
+                            ) : (
+                                generatedPalette.map((color, index) => (
+                                    <Animated.View
+                                        key={`${color}-${index}`}
+                                        entering={FadeInDown.springify().damping(12).delay(index * 50)}
+                                    >
+                                        <PaletteSwatch
+                                            color={color}
+                                            index={index}
+                                            onPress={handleSwatchPress}
+                                        />
+                                    </Animated.View>
+                                ))
+                            )}
                         </View>
                     </View>
-
-                    {/* Grid */}
-                    <ScrollView className="flex-1" contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', paddingBottom: 100 }}>
-                        {generatedPalette.length === 0 ? (
-                            <View className="items-center justify-center py-10">
-                                <AppText className="text-stone-400 text-center">Tap the refresh button above{'\n'}to generate a palette.</AppText>
-                            </View>
-                        ) : (
-                            generatedPalette.map((color, index) => (
-                                <Animated.View
-                                    key={`${color}-${index}`}
-                                    entering={FadeInDown.springify().damping(12).delay(index * 50)}
-                                >
-                                    <PaletteSwatch
-                                        color={color}
-                                        index={index}
-                                        onPress={handleSwatchPress}
-                                    />
-                                </Animated.View>
-                            ))
-                        )}
-
-                        {/* Field Notes Section - Now inside ScrollView */}
-                        {generatedPalette.length > 0 && (
-                            <View style={{ width: '100%', paddingHorizontal: 8, marginTop: 24 }}>
-                                <MixingNotesInput
-                                    value={notes}
-                                    onChangeText={setNotes}
-                                />
-                            </View>
-                        )}
-                    </ScrollView>
-                </View>
+                </ScrollView>
             </View>
 
             {/* Mixing Recipe Bottom Sheet */}

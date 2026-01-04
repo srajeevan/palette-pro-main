@@ -49,7 +49,7 @@ export default function LoginScreen() {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-stone-50" edges={['top', 'bottom']}>
+        <SafeAreaView className="flex-1 bg-[#0A0A0B]" edges={['top', 'bottom']}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 className="flex-1"
@@ -64,13 +64,13 @@ export default function LoginScreen() {
                         entering={FadeInDown.springify().damping(12).delay(100)}
                         className="items-center mb-12"
                     >
-                        <View className="bg-stone-900 p-4 rounded-3xl mb-6 shadow-xl shadow-stone-400/20">
+                        <View className="bg-[#1C1C1E] p-4 rounded-3xl mb-6 border border-[#28282A]">
                             <Palette size={40} color="#fff" strokeWidth={1.5} />
                         </View>
-                        <AppText className="text-4xl text-stone-900 text-center mb-3" style={{ fontFamily: 'PlayfairDisplay_700Bold' }}>
+                        <AppText className="text-4xl text-center mb-3 text-white" style={{ fontFamily: 'PlayfairDisplay_700Bold', color: '#FFFFFF' }}>
                             PalettePro
                         </AppText>
-                        <AppText className="text-stone-500 text-center text-lg" style={{ fontFamily: 'Inter_400Regular' }}>
+                        <AppText className="text-center text-lg text-[#8E8E93]" style={{ fontFamily: 'Inter_400Regular', color: '#8E8E93' }}>
                             Your digital artist companion.
                         </AppText>
                     </Animated.View>
@@ -81,27 +81,29 @@ export default function LoginScreen() {
                         className="space-y-5"
                     >
                         <View>
-                            <AppText className="text-stone-600 font-medium mb-2 ml-1 text-sm uppercase tracking-wider">Email</AppText>
+                            <AppText className="font-medium mb-2 ml-1 text-sm uppercase tracking-wider text-[#A1A1AA]" style={{ color: '#A1A1AA' }}>Email</AppText>
                             <TextInput
-                                className="bg-white border border-stone-200 rounded-2xl px-5 py-4 text-stone-800 font-sans text-base shadow-sm"
+                                className="bg-[#1C1C1E] border border-[#28282A] rounded-2xl px-5 py-4 font-sans text-base text-white"
                                 placeholder="artist@example.com"
-                                placeholderTextColor="#a8a29e"
+                                placeholderTextColor="#52525B"
                                 autoCapitalize="none"
                                 keyboardType="email-address"
                                 value={email}
                                 onChangeText={setEmail}
+                                style={{ color: '#FFFFFF' }}
                             />
                         </View>
 
                         <View>
-                            <AppText className="text-stone-600 font-medium mb-2 ml-1 text-sm uppercase tracking-wider">Password</AppText>
+                            <AppText className="font-medium mb-2 ml-1 text-sm uppercase tracking-wider text-[#A1A1AA]" style={{ color: '#A1A1AA' }}>Password</AppText>
                             <TextInput
-                                className="bg-white border border-stone-200 rounded-2xl px-5 py-4 text-stone-800 font-sans text-base shadow-sm"
+                                className="bg-[#1C1C1E] border border-[#28282A] rounded-2xl px-5 py-4 font-sans text-base text-white"
                                 placeholder="••••••••"
-                                placeholderTextColor="#a8a29e"
+                                placeholderTextColor="#52525B"
                                 secureTextEntry
                                 value={password}
                                 onChangeText={setPassword}
+                                style={{ color: '#FFFFFF' }}
                             />
                         </View>
 
@@ -111,15 +113,17 @@ export default function LoginScreen() {
                                 onPress={handleAuth}
                                 loading={authLoading}
                                 variant="primary"
-                                className="w-full py-4 shadow-lg shadow-emerald-900/10"
+                                className="w-full py-4"
+                                style={{ backgroundColor: '#3E63DD' }} // Force Cobalt Blue
                             />
                         </View>
 
                         <AppButton
                             title={isSignUp ? 'Already have an account? Sign In' : 'New to PalettePro? Create Account'}
                             onPress={() => setIsSignUp(!isSignUp)}
-                            variant="ghost"
-                            className="w-full"
+                            variant="secondary" // Changed from invalid 'ghost'
+                            className="w-full bg-transparent"
+                            textStyle={{ color: '#A1A1AA', fontSize: 14 }}
                         />
                     </Animated.View>
 
@@ -128,9 +132,9 @@ export default function LoginScreen() {
                         entering={FadeInDown.springify().damping(12).delay(300)}
                         className="my-10 flex-row items-center"
                     >
-                        <View className="flex-1 h-[1px] bg-stone-200" />
-                        <AppText className="mx-4 text-stone-400 text-sm font-medium">OR</AppText>
-                        <View className="flex-1 h-[1px] bg-stone-200" />
+                        <View className="flex-1 h-[1px] bg-[#28282A]" />
+                        <AppText className="mx-4 text-sm font-medium text-[#52525B]" style={{ color: '#52525B' }}>OR</AppText>
+                        <View className="flex-1 h-[1px] bg-[#28282A]" />
                     </Animated.View>
 
                     {/* Guest Action */}
@@ -146,9 +150,10 @@ export default function LoginScreen() {
                                 router.replace('/(tabs)');
                             }}
                             variant="outline"
-                            className="w-full border-stone-300"
+                            className="w-full border-[#28282A] bg-[#1C1C1E]"
+                            textStyle={{ color: '#FFFFFF' }}
                         />
-                        <AppText className="text-stone-400 text-xs text-center mt-4 px-4">
+                        <AppText className="text-xs text-center mt-4 px-4 text-[#52525B]" style={{ color: '#52525B' }}>
                             Guest access allows you to try all features but your data won't be synced across devices.
                         </AppText>
                     </Animated.View>

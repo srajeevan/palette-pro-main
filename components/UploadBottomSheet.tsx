@@ -31,15 +31,15 @@ export const UploadBottomSheet = forwardRef<BottomSheetModal, UploadBottomSheetP
                 index={0}
                 snapPoints={snapPoints}
                 backdropComponent={renderBackdrop}
-                backgroundStyle={{ backgroundColor: '#fafaf9' }} // stone-50
-                handleIndicatorStyle={{ backgroundColor: '#d6d3d1' }} // stone-300
+                backgroundStyle={{ backgroundColor: '#161618' }} // Midnight Surface
+                handleIndicatorStyle={{ backgroundColor: '#3F3F46' }} // Zinc 700
             >
                 <BottomSheetView className="flex-1 px-6 pt-2 pb-8">
                     <View className="flex-row justify-between items-center mb-6">
-                        <AppText className="text-lg font-bold text-stone-800">New Project</AppText>
+                        <AppText className="text-lg font-bold text-white">New Project</AppText>
                         <TouchableOpacity onPress={() => (ref as any)?.current?.dismiss()}>
-                            <View className="bg-stone-200 p-1 rounded-full">
-                                <X size={20} color="#78716c" />
+                            <View className="bg-[#27272A] p-1 rounded-full">
+                                <X size={20} color="#A1A1AA" />
                             </View>
                         </TouchableOpacity>
                     </View>
@@ -50,14 +50,14 @@ export const UploadBottomSheet = forwardRef<BottomSheetModal, UploadBottomSheetP
                                 (ref as any)?.current?.dismiss();
                                 onPickImage();
                             }}
-                            className="flex-row items-center bg-white p-4 rounded-xl border border-stone-200"
+                            className="flex-row items-center bg-[#1C1C1E] p-4 rounded-xl border border-[#28282A]"
                         >
-                            <View className="bg-orange-50 p-2 rounded-lg mr-4">
-                                <ImageIcon size={24} color="#ea580c" />
+                            <View className="bg-[#2C2C2E] p-2 rounded-lg mr-4">
+                                <ImageIcon size={24} color="#EA580C" />
                             </View>
                             <View>
-                                <AppText className="font-semibold text-stone-800">Choose from Gallery</AppText>
-                                <AppText className="text-xs text-stone-500">Pick an existing photo</AppText>
+                                <AppText className="font-semibold text-white">Choose from Gallery</AppText>
+                                <AppText className="text-xs text-[#A1A1AA]">Pick an existing photo</AppText>
                             </View>
                         </TouchableOpacity>
 
@@ -66,14 +66,14 @@ export const UploadBottomSheet = forwardRef<BottomSheetModal, UploadBottomSheetP
                                 (ref as any)?.current?.dismiss();
                                 onTakePhoto();
                             }}
-                            className="flex-row items-center bg-white p-4 rounded-xl border border-stone-200"
+                            className="flex-row items-center bg-[#1C1C1E] p-4 rounded-xl border border-[#28282A]"
                         >
-                            <View className="bg-blue-50 p-2 rounded-lg mr-4">
-                                <Camera size={24} color="#2563eb" />
+                            <View className="bg-[#2C2C2E] p-2 rounded-lg mr-4">
+                                <Camera size={24} color="#3B82F6" />
                             </View>
                             <View>
-                                <AppText className="font-semibold text-stone-800">Take Photo</AppText>
-                                <AppText className="text-xs text-stone-500">Capture a new image</AppText>
+                                <AppText className="font-semibold text-white">Take Photo</AppText>
+                                <AppText className="text-xs text-[#A1A1AA]">Capture a new image</AppText>
                             </View>
                         </TouchableOpacity>
                     </View>

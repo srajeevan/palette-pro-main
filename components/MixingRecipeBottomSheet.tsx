@@ -1,7 +1,7 @@
 import { getContrastColor, hexToRgb } from '@/utils/colorUtils';
 import { calculateMix, MixResult } from '@/utils/mixingEngine';
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
-import { Info, X } from 'lucide-react-native';
+import { X } from 'lucide-react-native';
 import React, { forwardRef, useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
@@ -75,19 +75,18 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                 enablePanDownToClose={true}
                 style={{ marginHorizontal: 20 }}
                 backgroundStyle={{
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: '#1C1C1E', // Dark Card
                     borderRadius: 32,
+                    borderWidth: 1,
+                    borderColor: '#28282A',
                     shadowColor: "#000",
-                    shadowOffset: {
-                        width: 0,
-                        height: 4,
-                    },
-                    shadowOpacity: 0.25,
-                    shadowRadius: 10,
+                    shadowOffset: { width: 0, height: 10 },
+                    shadowOpacity: 0.5,
+                    shadowRadius: 20,
                     elevation: 10,
                 }}
                 handleIndicatorStyle={{
-                    backgroundColor: '#E0E0E0',
+                    backgroundColor: '#3E3E42',
                     width: 40,
                     height: 5,
                     marginTop: 12,
@@ -98,7 +97,7 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                 >
                     {/* Header */}
                     <View className="flex-row justify-between items-center mb-6 mt-2">
-                        <AppText style={{ fontFamily: 'PlayfairDisplay_700Bold', fontSize: 24, color: '#1A1A1A', textAlign: 'left' }}>
+                        <AppText style={{ fontFamily: 'PlayfairDisplay_700Bold', fontSize: 24, color: '#FFFFFF', textAlign: 'left' }}>
                             Mixing Recipe
                         </AppText>
 
@@ -108,145 +107,86 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                                 width: 32,
                                 height: 32,
                                 borderRadius: 16,
-                                backgroundColor: '#F2F2F7',
+                                backgroundColor: '#28282A',
                                 alignItems: 'center',
                                 justifyContent: 'center'
                             }}
                         >
-                            <X size={18} color="#1A1A1A" />
+                            <X size={18} color="#FFFFFF" />
                         </TouchableOpacity>
                     </View>
 
                     {isCalculating ? (
                         <View className="items-center justify-center py-12">
-                            <ActivityIndicator size="large" color="#292524" />
-                            <AppText className="text-stone-500 mt-4">Analyzing color...</AppText>
+                            <ActivityIndicator size="large" color="#FFFFFF" />
+                            <AppText className="text-stone-400 mt-4">Analyzing color...</AppText>
                         </View>
                     ) : (
                         <>
-                            {/* Compare View */}
+                            {/* Compare View (Split) */}
                             <Animated.View
                                 entering={FadeInDown.springify().damping(14).delay(100)}
-                                className="flex-row mb-8 space-x-3"
+                                className="flex-row mb-8"
+                                style={{
+                                    height: 80,
+                                    borderRadius: 16,
+                                    overflow: 'hidden',
+                                    borderWidth: 1,
+                                    borderColor: 'rgba(255,255,255,0.1)'
+                                }}
                             >
-                                {/* Target Color */}
-                                <View style={{ flex: 1 }}>
-                                    <View
-                                        style={{
-                                            backgroundColor: targetColor || '#000000',
-                                            height: 120,
-                                            borderRadius: 20,
-                                            // Shadow
-                                            shadowColor: '#000',
-                                            shadowOpacity: 0.1,
-                                            shadowRadius: 8,
-                                            shadowOffset: { width: 0, height: 4 },
-                                            elevation: 4,
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                        }}
-                                    >
-                                        <AppText
-                                            style={{
-                                                color: targetTextColor,
-                                                fontFamily: 'Inter_700Bold',
-                                                fontSize: 12,
-                                                letterSpacing: 1.0,
-                                                textTransform: 'uppercase'
-                                            }}
-                                        >
-                                            TARGET
-                                        </AppText>
-                                        <AppText
-                                            style={{ color: targetTextColor, opacity: 0.8 }}
-                                            className="text-xs mt-1 font-mono"
-                                        >
-                                            {targetColor}
-                                        </AppText>
-                                    </View>
+                                {/* Target (Left) */}
+                                <View style={{ flex: 1, backgroundColor: targetColor || '#000', justifyContent: 'center', alignItems: 'center' }}>
+                                    {/* Optional text or leave clean */}
+                                </View>
+                                {/* Mixed (Right) */}
+                                <View style={{ flex: 1, backgroundColor: mixResult?.closestColor || '#000', justifyContent: 'center', alignItems: 'center' }}>
+
                                 </View>
 
-                                {/* Mixed Color */}
-                                <View style={{ flex: 1 }}>
-                                    <View
-                                        style={{
-                                            backgroundColor: mixResult?.closestColor || '#000000',
-                                            height: 120,
-                                            borderRadius: 20,
-                                            // Shadow
-                                            shadowColor: '#000',
-                                            shadowOpacity: 0.1,
-                                            shadowRadius: 8,
-                                            shadowOffset: { width: 0, height: 4 },
-                                            elevation: 4,
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                        }}
-                                    >
-                                        <AppText
-                                            style={{
-                                                color: mixedTextColor,
-                                                fontFamily: 'Inter_700Bold',
-                                                fontSize: 12,
-                                                letterSpacing: 1.0,
-                                                textTransform: 'uppercase'
-                                            }}
-                                        >
-                                            MIXED
-                                        </AppText>
-                                        <AppText
-                                            style={{ color: mixedTextColor, opacity: 0.8 }}
-                                            className="text-xs mt-1 font-mono"
-                                        >
-                                            {mixResult?.closestColor}
-                                        </AppText>
-                                    </View>
+                                {/* Floating Badge in Center */}
+                                <View
+                                    style={{
+                                        position: 'absolute',
+                                        alignSelf: 'center',
+                                        left: '50%',
+                                        marginLeft: -30, // Half width
+                                        backgroundColor: '#000',
+                                        paddingHorizontal: 8,
+                                        paddingVertical: 4,
+                                        borderRadius: 12,
+                                        borderWidth: 1,
+                                        borderColor: '#333'
+                                    }}
+                                >
+                                    <AppText style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>
+                                        {mixResult?.distance !== undefined
+                                            ? `${Math.round(Math.max(0, 100 - (mixResult.distance / 2)))}%`
+                                            : '--'}
+                                    </AppText>
                                 </View>
                             </Animated.View>
 
                             {/* Recipe Card */}
                             <Animated.View entering={FadeInDown.springify().damping(14).delay(200)}>
-                                <AppText className="text-stone-600 font-semibold mb-3">How to Mix</AppText>
+                                <AppText className="text-stone-400 font-semibold mb-3 tracking-wider text-xs uppercase">Oil Mix Formula</AppText>
                                 <View
                                     style={{
-                                        backgroundColor: '#FAFAFA',
+                                        backgroundColor: '#28282A', // L3
                                         borderWidth: 1,
-                                        borderColor: '#EFEFEF',
+                                        borderColor: '#333',
                                         borderRadius: 16,
                                         padding: 20,
                                         marginBottom: 16
                                     }}
                                 >
-                                    {/* Badge */}
-                                    <View
-                                        style={{
-                                            backgroundColor: '#EDE0D4',
-                                            paddingHorizontal: 8,
-                                            paddingVertical: 4,
-                                            borderRadius: 4,
-                                            alignSelf: 'flex-start',
-                                            marginBottom: 12
-                                        }}
-                                    >
-                                        <AppText
-                                            style={{
-                                                color: '#5D4037',
-                                                fontSize: 10,
-                                                fontFamily: 'Inter_700Bold',
-                                                textTransform: 'uppercase'
-                                            }}
-                                        >
-                                            OIL MIX
-                                        </AppText>
-                                    </View>
-
                                     {/* Recipe Text */}
                                     <AppText
                                         style={{
                                             fontFamily: 'PlayfairDisplay_400Regular',
-                                            fontSize: 18,
-                                            color: '#333333',
-                                            lineHeight: 28
+                                            fontSize: 20,
+                                            color: '#E5E5E5',
+                                            lineHeight: 30
                                         }}
                                     >
                                         {mixResult?.recipe || 'No recipe available'}
@@ -257,8 +197,8 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                             {/* Match Quality */}
                             <Animated.View entering={FadeInDown.springify().damping(14).delay(300)} className="mb-8">
                                 <View className="flex-row justify-between items-end mb-2">
-                                    <AppText className="text-stone-600 font-semibold">Match Quality</AppText>
-                                    <AppText style={{ fontFamily: 'Inter_700Bold', fontSize: 24, color: '#1A1A1A' }}>
+                                    <AppText className="text-stone-500 font-semibold text-xs">ACCURACY</AppText>
+                                    <AppText style={{ fontFamily: 'Inter_700Bold', fontSize: 18, color: '#3E63DD' }}>
                                         {mixResult?.distance !== undefined
                                             ? `${Math.round(Math.max(0, 100 - (mixResult.distance / 2)))}%`
                                             : 'N/A'}
@@ -266,9 +206,9 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                                 </View>
                                 <View
                                     style={{
-                                        height: 6,
-                                        borderRadius: 3,
-                                        backgroundColor: '#F0F0F0',
+                                        height: 4,
+                                        borderRadius: 2,
+                                        backgroundColor: '#333',
                                         overflow: 'hidden'
                                     }}
                                 >
@@ -278,32 +218,6 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                                             progressStyle
                                         ]}
                                     />
-                                </View>
-
-                                {/* Info Note / Disclaimer */}
-                                <View
-                                    style={{
-                                        backgroundColor: '#F9F9F9',
-                                        borderRadius: 12,
-                                        padding: 12,
-                                        flexDirection: 'row',
-                                        alignItems: 'flex-start',
-                                        marginTop: 24
-                                    }}
-                                >
-                                    <Info size={14} color="#888888" style={{ marginTop: 2, marginRight: 8 }} />
-                                    <AppText
-                                        style={{
-                                            fontFamily: 'Inter_400Regular',
-                                            fontSize: 11,
-                                            color: '#888888',
-                                            lineHeight: 16,
-                                            flex: 1
-                                        }}
-                                    >
-                                        This recipe uses the Universal Palette. Actual results may vary based on paint brand,
-                                        lighting conditions, and mixing technique. Always test on a palette first.
-                                    </AppText>
                                 </View>
                             </Animated.View>
                         </>

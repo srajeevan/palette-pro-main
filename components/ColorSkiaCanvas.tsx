@@ -108,14 +108,16 @@ export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef, ColorSkiaCanvasPro
                 ref={internalCanvasRef}
                 style={{ width: C_W, height: C_H }}
             >
-                <Image
-                    image={skiaImage}
-                    x={x}
-                    y={y}
-                    width={displayW}
-                    height={displayH}
-                    fit="contain"
-                />
+                {skiaImage && (
+                    <Image
+                        image={skiaImage}
+                        fit="cover" // Changed from contain to cover to fill container completely
+                        x={0}
+                        y={0}
+                        width={C_W}
+                        height={C_H}
+                    />
+                )}
             </Canvas>
         </View>
     );

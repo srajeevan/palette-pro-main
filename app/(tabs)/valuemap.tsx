@@ -1,14 +1,12 @@
-import { AppButton } from '@/components/AppButton';
 import { AppHeader } from '@/components/AppHeader';
-import { AppText } from '@/components/AppText';
+import { UploadPlaceholderView } from '@/components/UploadPlaceholderView';
 import { ValueControls } from '@/components/ValueControls';
 import { ValueMapCanvas } from '@/components/ValueMapCanvas';
 import { useImagePicker } from '@/services/useImagePicker';
 import { useProjectStore } from '@/store/useProjectStore';
 import { useRouter } from 'expo-router';
-import { Image as ImageIcon } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ValueMapScreen() {
@@ -24,27 +22,14 @@ export default function ValueMapScreen() {
 
     if (!imageUri) {
         return (
-            <SafeAreaView className="flex-1 bg-stone-100">
+            <SafeAreaView className="flex-1 bg-[#0A0A0B]">
                 <View className="flex-1 px-6 pt-10">
                     <AppHeader
                         title="Value Map"
                         subtitle="Analyze tonal values."
                     />
-                    <View className="flex-1 justify-center items-center">
-                        <ImageIcon size={48} color="#d6d3d1" />
-                        <AppText className="text-stone-400 mt-4 text-center font-medium">
-                            Ready to analyze?
-                        </AppText>
-                        <AppText className="text-stone-400 text-sm text-center mb-6">
-                            Select an image to map values.
-                        </AppText>
-                        <View className="gap-3 w-full">
-                            <AppButton
-                                title="Choose Image"
-                                onPress={pickImage}
-                                variant="primary"
-                            />
-                        </View>
+                    <View className="flex-1 -mt-20">
+                        <UploadPlaceholderView onImageSelected={pickImage} />
                     </View>
                 </View>
             </SafeAreaView>
@@ -52,54 +37,53 @@ export default function ValueMapScreen() {
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-stone-100" edges={['top', 'bottom']}>
-            <View className="flex-1" style={{ paddingBottom: 120 }}>
-                {/* Header */}
-                <View className="px-6 pt-2 pb-2">
-                    <View>
-                        <AppText style={{ fontFamily: 'PlayfairDisplay_700Bold', color: '#1A1A1A' }} className="text-4xl mb-1">
-                            Value Map
-                        </AppText>
-                        <AppText style={{ fontFamily: 'Inter_500Medium', color: '#666' }} className="text-base">
-                            Light, mid-tone, and shadow.
-                        </AppText>
-                    </View>
-                </View>
+        <SafeAreaView className="flex-1 bg-[#0A0A0B]" edges={['top']}>
+            <View className="flex-1">
+                {/* Fixed Header */}
+                <AppHeader
+                    title="Value Map"
+                    subtitle="TONAL ZONES"
+                    className="mb-0 z-10 bg-[#0A0A0B]"
+                />
 
-                {/* Value Map Canvas */}
-                {/* Value Map Canvas */}
-                <View
-                    style={{
-                        flex: 1,
-                        borderBottomLeftRadius: 32,
-                        borderBottomRightRadius: 32,
-                        overflow: 'hidden',
-                        shadowColor: "#000",
-                        shadowOffset: { width: 0, height: 10 },
-                        shadowOpacity: 0.1,
-                        shadowRadius: 20,
-                        backgroundColor: '#fff',
-                        elevation: 5
-                    }}
+                {/* Main Scrollable Content */}
+                <ScrollView
+                    className="flex-1"
+                    contentContainerStyle={{ paddingBottom: 140 }}
+                    showsVerticalScrollIndicator={false}
                 >
-                    <ValueMapCanvas
-                        grayscaleEnabled={grayscaleEnabled}
-                        posterizeLevels={posterizeLevels}
-                    />
-                </View>
+                    {/* Value Map Canvas */}
+                    <View
+                        style={{
+                            width: '100%',
+                            aspectRatio: 1,
+                            overflow: 'hidden',
+                            borderBottomLeftRadius: 32,
+                            borderBottomRightRadius: 32,
+                            backgroundColor: '#0A0A0B',
+                            borderWidth: 1,
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            marginBottom: 24,
+                        }}
+                    >
+                        <ValueMapCanvas
+                            grayscaleEnabled={grayscaleEnabled}
+                            posterizeLevels={posterizeLevels}
+                        />
+                    </View>
 
-                {/* Bottom Controls */}
-                {/* Floating Value Controls */}
-                <View style={{ marginTop: 24 }}>
-                    <ValueControls
-                        grayscaleEnabled={grayscaleEnabled}
-                        setGrayscaleEnabled={setGrayscaleEnabled}
-                        posterizeLevels={posterizeLevels}
-                        setPosterizeLevels={setPosterizeLevels}
-                        minLevels={MIN_LEVELS}
-                        maxLevels={MAX_LEVELS}
-                    />
-                </View>
+                    {/* Bottom Controls */}
+                    <View className="px-6">
+                        <ValueControls
+                            grayscaleEnabled={grayscaleEnabled}
+                            setGrayscaleEnabled={setGrayscaleEnabled}
+                            posterizeLevels={posterizeLevels}
+                            setPosterizeLevels={setPosterizeLevels}
+                            minLevels={MIN_LEVELS}
+                            maxLevels={MAX_LEVELS}
+                        />
+                    </View>
+                </ScrollView>
             </View>
         </SafeAreaView>
     );
