@@ -1,3 +1,4 @@
+import { CustomTabBar } from '@/components/CustomTabBar';
 import { Tabs } from 'expo-router';
 import { Eye, Layers, Palette, Pipette, User } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
@@ -8,37 +9,9 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#18181b', // zinc-900
-        tabBarInactiveTintColor: '#a1a1aa', // zinc-400
-        tabBarStyle: {
-          position: 'absolute',
-          bottom: 25,
-          left: 20,
-          right: 20,
-          elevation: 5,
-          backgroundColor: '#ffffff',
-          borderRadius: 24,
-          height: 64,
-          paddingBottom: 0,
-          paddingTop: 0,
-          borderTopWidth: 0,
-          shadowColor: '#000',
-          shadowOffset: {
-            width: 0,
-            height: 4,
-          },
-          shadowOpacity: 0.1,
-          shadowRadius: 12,
-          zIndex: 50,
-        },
-        tabBarItemStyle: {
-          justifyContent: 'center',
-          alignItems: 'center',
-          paddingVertical: 0,
-        },
-        tabBarShowLabel: false, // Minimalist look
       }}>
       <Tabs.Screen
         name="index"

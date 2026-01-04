@@ -2,20 +2,22 @@ import { AppButton } from '@/components/AppButton';
 import { AppHeader } from '@/components/AppHeader';
 import { AppText } from '@/components/AppText';
 import { ColorSkiaCanvas, ColorSkiaCanvasRef } from '@/components/ColorSkiaCanvas';
+import { MixingNotesInput } from '@/components/MixingNotesInput';
 import { MixingRecipeBottomSheet } from '@/components/MixingRecipeBottomSheet';
 import { PaletteSwatch } from '@/components/PaletteSwatch';
 import { useAuth } from '@/context/AuthContext';
 import { savePalette } from '@/services/paletteService';
+import { useImagePicker } from '@/services/useImagePicker';
 import { useProjectStore } from '@/store/useProjectStore';
 import { generatePalette } from '@/utils/paletteEngine';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Image as ImageIcon, Palette, RefreshCw, Save } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { Image as ImageIcon, RefreshCw, Save } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, ScrollView, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -36,11 +38,25 @@ export default function PaletteScreen() {
 
     const router = useRouter();
     const { user } = useAuth();
+    const { pickImage } = useImagePicker();
     const canvasRef = useRef<ColorSkiaCanvasRef>(null);
     const mixingRecipeBottomSheetRef = useRef<BottomSheetModal>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [selectedColor, setSelectedColor] = useState<string | null>(null);
+    const [notes, setNotes] = useState('');
+
+    // Auto-generate palette on image load if empty
+    React.useEffect(() => {
+        if (imageUri && generatedPalette.length === 0) {
+            console.log('🔄 Auto-generating palette...');
+            // Small delay to ensure canvas/image is ready
+            const timer = setTimeout(() => {
+                handleGenerate();
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [imageUri]);
 
     // Zoom/Pan State (Purely for viewing)
     const scale = useSharedValue(1);
@@ -82,6 +98,14 @@ export default function PaletteScreen() {
             { scale: scale.value }
         ]
     }));
+
+    const indicatorAnimatedStyle = useAnimatedStyle(() => {
+        const segmentWidth = (SCREEN_WIDTH - 48 - 8) / 4;
+        const index = [4, 6, 8, 12].indexOf(colorCount);
+        return {
+            transform: [{ translateX: withTiming(index * segmentWidth, { duration: 250 }) }]
+        };
+    });
 
     const handleGenerate = async (overrideCount?: number) => {
         const targetCount = overrideCount || colorCount;
@@ -185,15 +209,18 @@ export default function PaletteScreen() {
                         subtitle="Extract colors from your image."
                     />
                     <View className="flex-1 justify-center items-center">
-                        <View className="items-center justify-center p-8 bg-white rounded-2xl border-2 border-dashed border-stone-200">
-                            <ImageIcon size={48} color="#d6d3d1" />
-                            <AppText className="text-stone-400 mt-4 text-center font-medium">
-                                No image selected
-                            </AppText>
+                        <ImageIcon size={48} color="#d6d3d1" />
+                        <AppText className="text-stone-400 mt-4 text-center font-medium">
+                            Ready to create?
+                        </AppText>
+                        <AppText className="text-stone-400 text-sm text-center mb-6">
+                            Select an image to generate a palette.
+                        </AppText>
+                        <View className="gap-3 w-full">
                             <AppButton
-                                title="Go to Studio"
-                                onPress={() => router.navigate('/(tabs)')}
-                                variant="outline"
+                                title="Choose Image"
+                                onPress={pickImage}
+                                variant="primary"
                             />
                         </View>
                     </View>
@@ -207,11 +234,11 @@ export default function PaletteScreen() {
             <View className="flex-1 p-0">
                 <View className="px-6 pt-2 pb-2 flex-row justify-between items-center">
                     <View>
-                        <AppText className="text-2xl font-bold text-stone-800">Palette</AppText>
-                        <AppText className="text-stone-500 text-sm">Analyze</AppText>
+                        <AppText style={{ fontFamily: 'PlayfairDisplay_700Bold', fontSize: 34, color: '#1A1A1A' }}>Palette</AppText>
+                        <AppText style={{ fontFamily: 'Inter_500Medium', fontSize: 16, color: '#666', letterSpacing: 0.5, marginTop: 4 }}>Analyze</AppText>
                     </View>
                     <View className="flex-row items-center space-x-2">
-                        {user && generatedPalette.length > 0 && (
+                        {generatedPalette.length > 0 && (
                             <TouchableOpacity
                                 onPress={handleSavePalette}
                                 disabled={isSaving}
@@ -227,15 +254,42 @@ export default function PaletteScreen() {
                         <TouchableOpacity
                             onPress={() => handleGenerate()}
                             disabled={isGenerating}
-                            className={`p-2 rounded-full ${isGenerating ? 'bg-stone-200' : 'bg-stone-900'}`}
+                            style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: 20,
+                                backgroundColor: 'white',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                shadowColor: '#000',
+                                shadowOpacity: 0.1,
+                                shadowRadius: 4,
+                                elevation: 3,
+                            }}
                         >
-                            {isGenerating ? <ActivityIndicator size="small" color="#666" /> : <RefreshCw size={20} color="white" />}
+                            {isGenerating ? <ActivityIndicator size="small" color="#666" /> : <RefreshCw size={20} color="black" />}
                         </TouchableOpacity>
                     </View>
                 </View>
 
                 {/* Top Half: Image Canvas Container */}
-                <View style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT, overflow: 'hidden' }} className="mb-4 relative bg-stone-200">
+                <View
+                    style={{
+                        width: CANVAS_WIDTH,
+                        height: CANVAS_HEIGHT,
+                        overflow: 'hidden',
+                        borderBottomLeftRadius: 24,
+                        borderBottomRightRadius: 24,
+                        // Shadow
+                        shadowColor: '#000',
+                        shadowOpacity: 0.1,
+                        shadowRadius: 15,
+                        shadowOffset: { width: 0, height: 10 },
+                        elevation: 5,
+                        backgroundColor: '#E7E5E4', // stone-200
+                        marginBottom: 16,
+                    }}
+                >
                     <GestureDetector gesture={composedGesture}>
                         <Animated.View style={[{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }, canvasAnimatedStyle]}>
                             <ColorSkiaCanvas ref={canvasRef} />
@@ -246,33 +300,59 @@ export default function PaletteScreen() {
                 {/* Bottom Half: Palette Controls & Grid */}
                 <View className="flex-1 bg-white rounded-t-3xl shadow-lg px-6 pt-6">
                     {/* Controls */}
-                    <View className="flex-row items-center justify-between mb-4">
-                        <View className="flex-row items-center space-x-2">
-                            <Palette size={18} color="#78716c" />
-                            <AppText className="font-semibold text-stone-600">Generated Palette ({colorCount})</AppText>
+                    <View className="mb-6">
+                        {/* Segmented Control Container */}
+                        <View
+                            style={{
+                                flexDirection: 'row',
+                                backgroundColor: '#F2F2F7',
+                                borderRadius: 16,
+                                padding: 4,
+                                height: 50,
+                            }}
+                        >
+                            {/* Animated Active Indicator */}
+                            {/* We need to calculate width dynamically, but for now we can use flex */}
+                            <Animated.View
+                                style={[
+                                    {
+                                        position: 'absolute',
+                                        top: 4,
+                                        bottom: 4,
+                                        left: 4,
+                                        width: (SCREEN_WIDTH - 48 - 8) / 4, // (Screen - padding - innerPadding) / 4 segments
+                                        backgroundColor: 'white',
+                                        borderRadius: 12,
+                                        shadowColor: '#000',
+                                        shadowOpacity: 0.1,
+                                        shadowRadius: 2,
+                                        elevation: 2,
+                                    },
+                                    indicatorAnimatedStyle
+                                ]}
+                            />
+
+                            {[4, 6, 8, 12].map((num) => (
+                                <TouchableOpacity
+                                    key={num}
+                                    onPress={() => handlePresetPress(num)}
+                                    style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+                                >
+                                    <AppText
+                                        style={{
+                                            fontFamily: colorCount === num ? 'Inter_700Bold' : 'Inter_500Medium',
+                                            color: colorCount === num ? '#000' : '#8E8E93',
+                                            fontSize: 16
+                                        }}
+                                    >
+                                        {num}
+                                    </AppText>
+                                </TouchableOpacity>
+                            ))}
                         </View>
                     </View>
 
-                    <View className="flex-row items-center justify-between mb-6">
-                        {[4, 6, 8, 12].map((num) => (
-                            <TouchableOpacity
-                                key={num}
-                                onPress={() => handlePresetPress(num)}
-                                className={`px-5 py-3 rounded-xl border ${colorCount === num
-                                    ? 'bg-stone-800 border-stone-800'
-                                    : 'bg-white border-stone-200'
-                                    }`}
-                            >
-                                <AppText className={`font-bold ${colorCount === num ? 'text-white' : 'text-stone-600'
-                                    }`}>
-                                    {num}
-                                </AppText>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-
                     {/* Grid */}
-                    <AppText className="text-stone-600 mb-2">Palette count: {generatedPalette.length}</AppText>
                     <ScrollView className="flex-1" contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', paddingBottom: 100 }}>
                         {generatedPalette.length === 0 ? (
                             <View className="items-center justify-center py-10">
@@ -280,13 +360,27 @@ export default function PaletteScreen() {
                             </View>
                         ) : (
                             generatedPalette.map((color, index) => (
-                                <PaletteSwatch
+                                <Animated.View
                                     key={`${color}-${index}`}
-                                    color={color}
-                                    index={index}
-                                    onPress={handleSwatchPress}
-                                />
+                                    entering={FadeInDown.springify().damping(12).delay(index * 50)}
+                                >
+                                    <PaletteSwatch
+                                        color={color}
+                                        index={index}
+                                        onPress={handleSwatchPress}
+                                    />
+                                </Animated.View>
                             ))
+                        )}
+
+                        {/* Field Notes Section - Now inside ScrollView */}
+                        {generatedPalette.length > 0 && (
+                            <View style={{ width: '100%', paddingHorizontal: 8, marginTop: 24 }}>
+                                <MixingNotesInput
+                                    value={notes}
+                                    onChangeText={setNotes}
+                                />
+                            </View>
                         )}
                     </ScrollView>
                 </View>

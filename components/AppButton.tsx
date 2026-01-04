@@ -7,7 +7,7 @@ interface AppButtonProps {
     loading?: boolean;
     disabled?: boolean;
     className?: string;
-    icon?: React.ReactNode;
+    textStyle?: object;
 }
 
 export function AppButton({
@@ -17,7 +17,8 @@ export function AppButton({
     loading = false,
     disabled = false,
     className = '',
-    icon
+    icon,
+    textStyle
 }: AppButtonProps) {
 
     const baseStyles = 'py-4 rounded-xl items-center justify-center flex-row gap-3';
@@ -45,7 +46,7 @@ export function AppButton({
             ) : (
                 <>
                     {icon}
-                    <Text className={textStyles[variant]}>{title}</Text>
+                    <Text style={[{}, textStyle]} className={textStyles[variant]}>{title}</Text>
                 </>
             )}
         </TouchableOpacity>

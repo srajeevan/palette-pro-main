@@ -13,7 +13,13 @@ export interface ColorSkiaCanvasRef {
     getImageSnapshot: () => import("@shopify/react-native-skia").SkImage | null;
 }
 
-export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef>((props, ref) => {
+interface ColorSkiaCanvasProps {
+    width?: number;
+    height?: number;
+}
+
+export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef, ColorSkiaCanvasProps>((props, ref) => {
+    const { width = CANVAS_WIDTH, height = CANVAS_HEIGHT } = props;
     const { imageUri } = useProjectStore();
     const skiaImage = useImage(imageUri || '');
     const internalCanvasRef = useCanvasRef();
@@ -34,11 +40,13 @@ export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef>((props, ref) => {
             // 1. Calculate Layout Metrics
             const imgW = skiaImage.width();
             const imgH = skiaImage.height();
-            const scale = Math.min(CANVAS_WIDTH / imgW, CANVAS_HEIGHT / imgH);
+            const C_W = props.width || CANVAS_WIDTH;
+            const C_H = props.height || CANVAS_HEIGHT;
+            const scale = Math.min(C_W / imgW, C_H / imgH);
             const displayW = imgW * scale;
             const displayH = imgH * scale;
-            const offsetX = (CANVAS_WIDTH - displayW) / 2;
-            const offsetY = (CANVAS_HEIGHT - displayH) / 2;
+            const offsetX = (C_W - displayW) / 2;
+            const offsetY = (C_H - displayH) / 2;
 
             // 2. Check Bounds
             if (x < offsetX || x > offsetX + displayW || y < offsetY || y > offsetY + displayH) {
@@ -77,7 +85,7 @@ export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef>((props, ref) => {
     if (!imageUri || !skiaImage) {
         return (
             <View
-                style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}
+                style={{ width: props.width || CANVAS_WIDTH, height: props.height || CANVAS_HEIGHT }}
                 className="justify-center items-center bg-stone-50"
             />
         );
@@ -86,17 +94,19 @@ export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef>((props, ref) => {
     // Calculate layout for render
     const imgW = skiaImage.width();
     const imgH = skiaImage.height();
-    const scale = Math.min(CANVAS_WIDTH / imgW, CANVAS_HEIGHT / imgH);
+    const C_W = props.width || CANVAS_WIDTH;
+    const C_H = props.height || CANVAS_HEIGHT;
+    const scale = Math.min(C_W / imgW, C_H / imgH);
     const displayW = imgW * scale;
     const displayH = imgH * scale;
-    const x = (CANVAS_WIDTH - displayW) / 2;
-    const y = (CANVAS_HEIGHT - displayH) / 2;
+    const x = (C_W - displayW) / 2;
+    const y = (C_H - displayH) / 2;
 
     return (
-        <View style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }} className="bg-stone-100 overflow-hidden relative">
+        <View style={{ width: C_W, height: C_H }} className="overflow-hidden relative">
             <Canvas
                 ref={internalCanvasRef}
-                style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}
+                style={{ width: C_W, height: C_H }}
             >
                 <Image
                     image={skiaImage}

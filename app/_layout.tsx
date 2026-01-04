@@ -26,9 +26,17 @@ export const unstable_settings = {
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
+import { Inter_400Regular, Inter_500Medium, Inter_700Bold } from '@expo-google-fonts/inter';
+import { PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
+// ...
+
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    PlayfairDisplay_700Bold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_700Bold,
     ...FontAwesome.font,
   });
 
@@ -50,7 +58,16 @@ export default function RootLayout() {
   return <RootLayoutNav />;
 }
 
+// RootLayoutNav handles the router and rendering
 function RootLayoutNav() {
+  return (
+    <AuthProvider>
+      <RootLayoutNavContent />
+    </AuthProvider>
+  );
+}
+
+function RootLayoutNavContent() {
   const colorScheme = useColorScheme();
   const { session, loading, isGuest } = useAuth();
   const segments = useSegments();
@@ -63,10 +80,8 @@ function RootLayoutNav() {
     const isEffectiveUser = session || isGuest;
 
     if (!isEffectiveUser && inAuthGroup) {
-      // If not logged in and trying to access tabs, redirect to login
       router.replace('/login');
     } else if (isEffectiveUser && !inAuthGroup) {
-      // If logged in and not in tabs (e.g. at login), redirect to tabs
       router.replace('/(tabs)');
     }
   }, [session, loading, isGuest, segments]);
@@ -75,15 +90,13 @@ function RootLayoutNav() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <BottomSheetModalProvider>
         <SafeAreaProvider>
-          <AuthProvider>
-            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-              <Stack>
-                <Stack.Screen name="login" options={{ headerShown: false }} />
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-              </Stack>
-            </ThemeProvider>
-          </AuthProvider>
+          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <Stack>
+              <Stack.Screen name="login" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+            </Stack>
+          </ThemeProvider>
         </SafeAreaProvider>
       </BottomSheetModalProvider>
     </GestureHandlerRootView>

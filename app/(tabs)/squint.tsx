@@ -2,18 +2,19 @@ import { AppButton } from '@/components/AppButton';
 import { AppHeader } from '@/components/AppHeader';
 import { AppText } from '@/components/AppText';
 import { SquintCanvas } from '@/components/SquintCanvas';
+import { SquintControls } from '@/components/SquintControls';
+import { useImagePicker } from '@/services/useImagePicker';
 import { useProjectStore } from '@/store/useProjectStore';
 import { useRouter } from 'expo-router';
-import { Eye } from 'lucide-react-native';
 import { Image as ImageIcon } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import Slider from '@react-native-community/slider';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SquintScreen() {
     const { imageUri } = useProjectStore();
     const router = useRouter();
+    const { pickImage } = useImagePicker();
 
     // Blur intensity state (0 = no blur, 50 = maximum blur)
     const [blurIntensity, setBlurIntensity] = useState(0);
@@ -28,18 +29,18 @@ export default function SquintScreen() {
                         subtitle="Analyze values and composition."
                     />
                     <View className="flex-1 justify-center items-center">
-                        <View className="items-center justify-center p-8 bg-white rounded-2xl border-2 border-dashed border-stone-200">
-                            <ImageIcon size={48} color="#d6d3d1" />
-                            <AppText className="text-stone-400 mt-4 text-center font-medium">
-                                No image selected
-                            </AppText>
-                            <AppText className="text-stone-400 text-sm text-center mb-6">
-                                Go to the Picker tab to select an image.
-                            </AppText>
+                        <ImageIcon size={48} color="#d6d3d1" />
+                        <AppText className="text-stone-400 mt-4 text-center font-medium">
+                            Ready to analyze?
+                        </AppText>
+                        <AppText className="text-stone-400 text-sm text-center mb-6">
+                            Select an image to see values.
+                        </AppText>
+                        <View className="gap-3 w-full">
                             <AppButton
-                                title="Go to Picker"
-                                onPress={() => router.navigate('/(tabs)')}
-                                variant="outline"
+                                title="Choose Image"
+                                onPress={pickImage}
+                                variant="primary"
                             />
                         </View>
                     </View>
@@ -50,54 +51,45 @@ export default function SquintScreen() {
 
     return (
         <SafeAreaView className="flex-1 bg-stone-100" edges={['top', 'bottom']}>
-            <View className="flex-1">
+            <View className="flex-1" style={{ paddingBottom: 120 }}>
                 {/* Header */}
-                <View className="px-6 pt-2 pb-4">
-                    <AppHeader
-                        title="Squint Tool"
-                        subtitle="See shapes, not details."
-                    />
+                <View className="px-6 pt-2 pb-2">
+                    <View>
+                        <AppText style={{ fontFamily: 'PlayfairDisplay_700Bold', color: '#1A1A1A' }} className="text-4xl mb-1">
+                            Squint Tool
+                        </AppText>
+                        <AppText style={{ fontFamily: 'Inter_500Medium', color: '#666' }} className="text-base">
+                            See shapes, not details.
+                        </AppText>
+                    </View>
                 </View>
 
                 {/* Squint Canvas with Blur */}
-                <View className="mb-6">
+                <View
+                    style={{
+                        flex: 1,
+                        borderBottomLeftRadius: 32,
+                        borderBottomRightRadius: 32,
+                        overflow: 'hidden',
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 10 },
+                        shadowOpacity: 0.15,
+                        shadowRadius: 20,
+                        backgroundColor: '#fff', // Needed for shadow
+                        elevation: 5
+                    }}
+                >
                     <SquintCanvas blurIntensity={blurIntensity} />
                 </View>
 
                 {/* Bottom Controls */}
-                <View className="bg-white rounded-t-3xl shadow-lg px-6 pt-8 pb-6">
-                    {/* Control Header */}
-                    <View className="flex-row items-center justify-between mb-6">
-                        <View className="flex-row items-center space-x-2">
-                            <Eye size={18} color="#78716c" />
-                            <AppText className="font-semibold text-stone-600">Blur Intensity</AppText>
-                        </View>
-                        <AppText className="text-stone-800 font-bold text-lg">
-                            {Math.round((blurIntensity / MAX_BLUR) * 100)}%
-                        </AppText>
-                    </View>
-
-                    {/* Slider */}
-                    <View className="mb-6 px-4">
-                        <Slider
-                            style={{ width: '100%', height: 40 }}
-                            minimumValue={0}
-                            maximumValue={MAX_BLUR}
-                            value={blurIntensity}
-                            onValueChange={setBlurIntensity}
-                            minimumTrackTintColor="#292524"
-                            maximumTrackTintColor="#e7e5e4"
-                            thumbTintColor="#292524"
-                        />
-                    </View>
-
-                    {/* Info */}
-                    <View className="bg-stone-50 rounded-xl p-4 border border-stone-200">
-                        <AppText className="text-stone-600 text-sm text-center leading-5">
-                            Squinting helps artists see the big shapes and values without getting lost in details.
-                            Drag the slider to simulate this classic painting technique.
-                        </AppText>
-                    </View>
+                {/* Floating Control Deck */}
+                <View style={{ marginTop: 24 }}>
+                    <SquintControls
+                        blurIntensity={blurIntensity}
+                        setBlurIntensity={setBlurIntensity}
+                        maxBlur={MAX_BLUR}
+                    />
                 </View>
             </View>
         </SafeAreaView>

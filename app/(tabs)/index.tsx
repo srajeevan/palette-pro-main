@@ -1,8 +1,9 @@
 import { AppHeader } from '@/components/AppHeader';
 import { AppText } from '@/components/AppText';
-import { ColorInspectorHUD } from '@/components/ColorInspectorHUD';
+import { ColorComparisonBar } from '@/components/ColorComparisonBar';
 import { ColorPointer } from '@/components/ColorPointer';
 import { ColorSkiaCanvas, ColorSkiaCanvasRef } from '@/components/ColorSkiaCanvas';
+import { MixingRecipeModal } from '@/components/MixingRecipeModal';
 import { UploadBottomSheet } from '@/components/UploadBottomSheet';
 import { UploadPlaceholderView } from '@/components/UploadPlaceholderView';
 import { useImagePicker } from '@/services/useImagePicker';
@@ -11,20 +12,26 @@ import { calculateMix, MixResult } from '@/utils/mixingEngine';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { ImagePlus } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
-import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const CANVAS_WIDTH = SCREEN_WIDTH;
-const CANVAS_HEIGHT = SCREEN_HEIGHT * 0.6; // Larger area for studio
+
+// Default initial dimensions until measurement
+const INITIAL_WIDTH = SCREEN_WIDTH;
+const INITIAL_HEIGHT = SCREEN_HEIGHT * 0.6;
 
 export default function PickerScreen() {
   const { pickImage, takePhoto } = useImagePicker();
   const { imageUri } = useProjectStore();
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const canvasRef = useRef<ColorSkiaCanvasRef>(null);
+
+  // Layout State
+  // Layout State
+  const [canvasLayout, setCanvasLayout] = useState({ width: INITIAL_WIDTH, height: INITIAL_HEIGHT });
 
   // Live Color State
   const [pickedColor, setPickedColor] = useState<string>('#FFFFFF');
@@ -34,6 +41,9 @@ export default function PickerScreen() {
     recipe: 'Touch image to mix...',
     distance: 0
   });
+
+  // Modal State
+  const [isRecipeModalVisible, setIsRecipeModalVisible] = useState(false);
 
   // Zoom/Pan State
   const scale = useSharedValue(1);
@@ -50,6 +60,7 @@ export default function PickerScreen() {
     .onEnd(() => {
       savedScale.value = scale.value;
     });
+
 
   const pan = Gesture.Pan()
     .averageTouches(true)
@@ -75,8 +86,8 @@ export default function PickerScreen() {
   }));
 
   const handleColorChange = (screenX: number, screenY: number) => {
-    const originX = CANVAS_WIDTH / 2;
-    const originY = CANVAS_HEIGHT / 2;
+    const originX = canvasLayout.width / 2;
+    const originY = canvasLayout.height / 2;
 
     const unzoomedX = ((screenX - translateX.value - originX) / scale.value) + originX;
     const unzoomedY = ((screenY - translateY.value - originY) / scale.value) + originY;
@@ -92,8 +103,12 @@ export default function PickerScreen() {
     }
   };
 
-  const handlePresentModalPress = () => {
+  const handlePresentUploadModal = () => {
     bottomSheetRef.current?.present();
+  };
+
+  const handlePresentRecipeModal = () => {
+    setIsRecipeModalVisible(true);
   };
 
   return (
@@ -127,46 +142,66 @@ export default function PickerScreen() {
           exiting={FadeOut.duration(800)}
           style={[StyleSheet.absoluteFill, { zIndex: 0 }]}
         >
-          <SafeAreaView className="flex-1 bg-stone-100" edges={['top']}>
-            <View className="flex-1 p-0">
-              <View className="px-6 pt-2 pb-2 flex-row justify-between items-center z-10">
-                <View>
-                  <AppText className="text-2xl font-bold text-stone-800">Studio</AppText>
-                  <AppText className="text-stone-500 text-sm">Pick & Mix</AppText>
+          <SafeAreaView className="flex-1 bg-stone-100" edges={['top', 'bottom']}>
+            <View className="flex-1 p-0" style={{ paddingBottom: 110 }}>
+              {/* Compact Header */}
+              <View className="px-6 pt-2 pb-2 flex-row justify-between items-center z-10 bg-stone-100 border-b border-stone-200">
+                <View className="flex-row items-baseline space-x-2">
+                  <AppText style={{ fontFamily: 'PlayfairDisplay_700Bold', color: '#1A1A1A' }} className="text-2xl">Studio</AppText>
+                  <AppText style={{ fontFamily: 'Inter_400Regular', color: '#9ca3af' }} className="text-xs">Pick & Mix</AppText>
                 </View>
-                <TouchableOpacity
-                  onPress={handlePresentModalPress}
-                  className="p-2 bg-stone-200 rounded-full"
+                <Pressable
+                  onPress={handlePresentUploadModal}
+                  className="p-2 bg-white rounded-full border border-stone-200 shadow-sm active:opacity-70"
                 >
-                  <ImagePlus size={24} color="#57534e" />
-                </TouchableOpacity>
+                  <ImagePlus size={20} color="#57534e" />
+                </Pressable>
               </View>
 
-              <View style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT, overflow: 'hidden' }} className="mb-4 relative bg-stone-200">
-                <GestureDetector gesture={composedGesture}>
-                  <Animated.View style={[{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }, canvasAnimatedStyle]}>
-                    <ColorSkiaCanvas ref={canvasRef} />
-                  </Animated.View>
-                </GestureDetector>
+              {/* Main Canvas Area */}
+              <View style={{ flex: 1, overflow: 'hidden' }} className="relative bg-[#1A1A1A]">
+                <View
+                  style={{ flex: 1 }}
+                  onLayout={(event) => {
+                    const { width, height } = event.nativeEvent.layout;
+                    setCanvasLayout({ width, height });
+                  }}
+                >
+                  <GestureDetector gesture={composedGesture}>
+                    <Animated.View style={[{ width: '100%', height: '100%' }, canvasAnimatedStyle]}>
+                      <ColorSkiaCanvas
+                        ref={canvasRef}
+                        width={canvasLayout.width}
+                        height={canvasLayout.height}
+                      />
+                    </Animated.View>
+                  </GestureDetector>
 
-                <ColorPointer
-                  canvasWidth={CANVAS_WIDTH}
-                  canvasHeight={CANVAS_HEIGHT}
-                  onColorChange={handleColorChange}
-                />
+                  <ColorPointer
+                    canvasWidth={canvasLayout.width}
+                    canvasHeight={canvasLayout.height}
+                    onColorChange={handleColorChange}
+                  />
+                </View>
               </View>
 
-              {/* HUD Overlay */}
-              <ColorInspectorHUD
+              {/* Bottom Comparison Bar */}
+              <ColorComparisonBar
                 color={pickedColor}
-                rgb={pickedRgb}
-                mix={currentMix}
+                rgb={`${pickedRgb.r}, ${pickedRgb.g}, ${pickedRgb.b}`}
+                onPress={handlePresentRecipeModal}
               />
 
               <UploadBottomSheet
                 ref={bottomSheetRef}
                 onPickImage={pickImage}
                 onTakePhoto={takePhoto}
+              />
+
+              <MixingRecipeModal
+                visible={isRecipeModalVisible}
+                recipeData={currentMix.recipe}
+                onClose={() => setIsRecipeModalVisible(false)}
               />
             </View>
           </SafeAreaView>

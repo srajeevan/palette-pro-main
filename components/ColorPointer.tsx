@@ -12,12 +12,21 @@ interface ColorPointerProps {
     canvasWidth: number;
     canvasHeight: number;
     onColorChange?: (x: number, y: number) => void;
+    // We keep these props optional to avoid breaking the interface, but we don't display them in the reticle itself
+    color?: string;
+    hex?: string;
+    rgb?: string;
+    onPress?: () => void;
 }
 
 const POINTER_SIZE = 60;
 const HALF_POINTER = POINTER_SIZE / 2;
 
-export const ColorPointer = ({ canvasWidth, canvasHeight, onColorChange }: ColorPointerProps) => {
+export const ColorPointer = ({
+    canvasWidth,
+    canvasHeight,
+    onColorChange,
+}: ColorPointerProps) => {
     // Start in the center
     const translateX = useSharedValue(canvasWidth / 2 - HALF_POINTER);
     const translateY = useSharedValue(canvasHeight / 2 - HALF_POINTER);
