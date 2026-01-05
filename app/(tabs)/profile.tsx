@@ -5,7 +5,7 @@ import { GuestSyncCard } from '@/components/GuestSyncCard';
 import { ShareCardGenerator, ShareCardGeneratorRef } from '@/components/ShareCardGenerator';
 import { useAuth } from '@/context/AuthContext';
 import { loadPalettes } from '@/services/paletteService';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Palette, Settings } from 'lucide-react-native';
 import React, { useCallback, useRef, useState } from 'react';
 import { FlatList, Share as NativeShare, Pressable, View } from 'react-native';
@@ -20,6 +20,7 @@ import { BottomSheetModal } from '@gorhom/bottom-sheet';
 
 export default function ProfileScreen() {
     const { user, loading, isGuest, signOut } = useAuth();
+    const router = useRouter();
 
     // State
     const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);

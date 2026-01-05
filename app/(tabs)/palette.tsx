@@ -20,8 +20,8 @@ import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withTiming } fr
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const CANVAS_WIDTH = SCREEN_WIDTH;
-const CANVAS_HEIGHT = SCREEN_HEIGHT * 0.45; // Slightly reduced to fit palette
+const CANVAS_WIDTH = SCREEN_WIDTH - 48; // Match px-6 padding (24 * 2)
+const CANVAS_HEIGHT = SCREEN_HEIGHT * 0.45;
 
 export default function PaletteScreen() {
     const {
@@ -259,18 +259,23 @@ export default function PaletteScreen() {
                         style={{
                             width: CANVAS_WIDTH,
                             height: CANVAS_HEIGHT,
+                            alignSelf: 'center', // Center the narrower canvas
                             overflow: 'hidden',
-                            borderBottomLeftRadius: 24,
-                            borderBottomRightRadius: 24,
-                            backgroundColor: '#0A0A0B',
+                            borderRadius: 24, // Uniform radius for Floating Card look
+                            backgroundColor: '#f5f5f4', // Changed to white to match Squint/ValueMap
                             marginBottom: 24,
+                            marginTop: 16, // Add top margin to separate from Header
                             borderWidth: 1,
                             borderColor: 'rgba(255,255,255,0.1)',
                         }}
                     >
                         <GestureDetector gesture={composedGesture}>
                             <Animated.View style={[{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }, canvasAnimatedStyle]}>
-                                <ColorSkiaCanvas ref={canvasRef} />
+                                <ColorSkiaCanvas
+                                    ref={canvasRef}
+                                    width={CANVAS_WIDTH}
+                                    height={CANVAS_HEIGHT}
+                                />
                             </Animated.View>
                         </GestureDetector>
                     </View>

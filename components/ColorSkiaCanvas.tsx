@@ -111,7 +111,7 @@ export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef, ColorSkiaCanvasPro
                 {skiaImage && (
                     <Image
                         image={skiaImage}
-                        fit="cover" // Changed from contain to cover to fill container completely
+                        fit="contain" // Changed from cover to contain to show full image
                         x={0}
                         y={0}
                         width={C_W}

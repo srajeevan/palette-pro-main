@@ -90,8 +90,15 @@ export const ColorPointer = ({
     return (
         <GestureDetector gesture={pan}>
             <Animated.View style={[styles.pointer, animatedStyle]}>
-                <View style={styles.crosshairVertical} />
-                <View style={styles.crosshairHorizontal} />
+                {/* Full-Screen Crosshairs (Scope Style) */}
+                <View style={[styles.fullCrosshair, styles.verticalLine]} />
+                <View style={[styles.fullCrosshair, styles.horizontalLine]} />
+
+                {/* Outer Ring */}
+                <View style={styles.ring} />
+
+                {/* Center Dot */}
+                <View style={styles.centerDot} />
             </Animated.View>
         </GestureDetector>
     );
@@ -101,28 +108,61 @@ const styles = StyleSheet.create({
     pointer: {
         width: 80,
         height: 80,
-        borderRadius: 40,
-        borderWidth: 2,
-        borderColor: '#FFFFFF',
         position: 'absolute',
         top: 0,
         left: 0,
         justifyContent: 'center',
         alignItems: 'center',
-        // Inner Glow / Shadow
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.5,
-        shadowRadius: 8,
-        elevation: 8,
-        backgroundColor: 'rgba(255,255,255,0.05)', // Very subtle fill
         zIndex: 100,
     },
-    // Removed Crosshairs
-    crosshairVertical: {
-        width: 0, height: 0
+    ring: {
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+        borderRadius: 40,
+        borderWidth: 2,
+        borderColor: '#000000',
+        backgroundColor: 'rgba(255,255,255,0.0)',
+        shadowColor: '#FFF',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 2,
+        elevation: 2,
+        zIndex: 20,
     },
-    crosshairHorizontal: {
-        width: 0, height: 0
+    fullCrosshair: {
+        position: 'absolute',
+        backgroundColor: '#000000',
+        opacity: 0.8,
+        zIndex: 10,
     },
+    verticalLine: {
+        width: 1.5,
+        height: 4000,
+        shadowColor: '#FFF',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.3,
+        shadowRadius: 1,
+    },
+    horizontalLine: {
+        height: 1.5,
+        width: 4000,
+        shadowColor: '#FFF',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.3,
+        shadowRadius: 1,
+    },
+    centerDot: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: '#FF0000',
+        position: 'absolute',
+        zIndex: 30,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.5,
+        shadowRadius: 1,
+    },
+    // Legacy removed
 });

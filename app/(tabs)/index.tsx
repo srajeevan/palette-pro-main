@@ -122,6 +122,19 @@ export default function PickerScreen() {
     setIsRecipeModalVisible(true);
   };
 
+  // Initial Color Pick on Image Load
+  React.useEffect(() => {
+    if (imageUri && canvasLayout.width > 0 && canvasLayout.height > 0) {
+      // Small delay to ensure Skia image is rendered on canvas
+      const timer = setTimeout(() => {
+        const centerX = canvasLayout.width / 2;
+        const centerY = canvasLayout.height / 2;
+        handleColorChange(centerX, centerY);
+      }, 500); // 500ms delay to be safe
+      return () => clearTimeout(timer);
+    }
+  }, [imageUri, canvasLayout]);
+
   return (
     <View style={{ flex: 1, backgroundColor: '#0A0A0B' }}>
       {!imageUri && (

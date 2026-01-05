@@ -1,3 +1,5 @@
+import { PaywallModal } from '@/components/PaywallModal';
+import { usePro } from '@/context/ProContext';
 import { BlurView } from 'expo-blur';
 import React, { useMemo } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -55,6 +57,12 @@ const parseRecipe = (recipe: string): Ingredient[] => {
 
 export const MixingRecipeModal = ({ visible, recipeData, onClose }: MixingRecipeModalProps) => {
     const ingredients = useMemo(() => parseRecipe(recipeData), [recipeData]);
+    const { isPro } = usePro();
+    const paywallRef = React.useRef<BottomSheetModal>(null);
+
+    const handleUnlockPress = () => {
+        paywallRef.current?.present();
+    };
 
     return (
         <Modal
@@ -83,7 +91,7 @@ export const MixingRecipeModal = ({ visible, recipeData, onClose }: MixingRecipe
                             {ingredients.length > 0 ? (
                                 <>
                                     {/* Left Column: Chart */}
-                                    <View style={styles.chartColumn}>
+                                    <View style={[styles.chartColumn, !isPro && { opacity: 0.3, blurRadius: 4 }]}>
                                         <MultiSegmentDonut data={ingredients} size={140} strokeWidth={16} />
                                     </View>
 
@@ -96,12 +104,25 @@ export const MixingRecipeModal = ({ visible, recipeData, onClose }: MixingRecipe
                                             >
                                                 <PaintTubeRow
                                                     color={ing.color}
-                                                    percentage={ing.percentage}
-                                                    name={ing.name}
+                                                    percentage={isPro ? ing.percentage : 0} // Hide percentage
+                                                    name={isPro ? ing.name : ing.name} // Show name but maybe hide specific brand if wanted, for now name is fine
+                                                    isLocked={!isPro}
                                                 />
                                             </Animated.View>
                                         ))}
                                     </View>
+
+                                    {/* Locked Overlay */}
+                                    {!isPro && (
+                                        <View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                                            <TouchableOpacity
+                                                onPress={handleUnlockPress}
+                                                style={{ backgroundColor: '#F59E0B', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } }}
+                                            >
+                                                <Text style={{ fontWeight: 'bold', color: 'black', marginRight: 6 }}>🔒 Unlock Recipe</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
                                 </>
                             ) : (
                                 <View style={[styles.emptyState, { flex: 1 }]}>
@@ -119,6 +140,8 @@ export const MixingRecipeModal = ({ visible, recipeData, onClose }: MixingRecipe
                     </View>
                 </Animated.View>
             </View>
+
+            <PaywallModal ref={paywallRef} />
         </Modal>
     );
 };

@@ -1,28 +1,33 @@
 import { useProjectStore } from '@/store/useProjectStore';
-import { Blur, Canvas, Image, useImage, Group, Paint } from '@shopify/react-native-skia';
+import { Blur, Canvas, Group, Image, Paint, useImage } from '@shopify/react-native-skia';
 import React, { forwardRef } from 'react';
 import { Dimensions, View } from 'react-native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// Generous canvas sizing for squint view
-const CANVAS_WIDTH = SCREEN_WIDTH;
-const CANVAS_HEIGHT = SCREEN_HEIGHT * 0.6;
+// Default sizing if not provided
+const DEFAULT_WIDTH = SCREEN_WIDTH;
+const DEFAULT_HEIGHT = SCREEN_HEIGHT * 0.5;
 
 interface SquintCanvasProps {
     blurIntensity: number;
+    width?: number;
+    height?: number;
 }
 
-export const SquintCanvas = forwardRef<any, SquintCanvasProps>(({ blurIntensity }, ref) => {
+export const SquintCanvas = forwardRef<any, SquintCanvasProps>(({ blurIntensity, width, height }, ref) => {
     const { imageUri } = useProjectStore();
     const skiaImage = useImage(imageUri || '');
+
+    const C_W = width || DEFAULT_WIDTH;
+    const C_H = height || DEFAULT_HEIGHT;
 
     if (!imageUri || !skiaImage) {
         return (
             <View
                 style={{
-                    width: CANVAS_WIDTH,
-                    height: CANVAS_HEIGHT,
+                    width: C_W,
+                    height: C_H,
                     backgroundColor: '#fafaf9',
                     borderRadius: 12,
                     justifyContent: 'center',
@@ -35,24 +40,24 @@ export const SquintCanvas = forwardRef<any, SquintCanvasProps>(({ blurIntensity 
     // Calculate layout for render (fit image within canvas)
     const imgW = skiaImage.width();
     const imgH = skiaImage.height();
-    const scale = Math.min(CANVAS_WIDTH / imgW, CANVAS_HEIGHT / imgH);
+    const scale = Math.min(C_W / imgW, C_H / imgH);
     const displayW = imgW * scale;
     const displayH = imgH * scale;
-    const x = (CANVAS_WIDTH - displayW) / 2;
-    const y = (CANVAS_HEIGHT - displayH) / 2;
+    const x = (C_W - displayW) / 2;
+    const y = (C_H - displayH) / 2;
 
     return (
         <View
             style={{
-                width: CANVAS_WIDTH,
-                height: CANVAS_HEIGHT,
+                width: C_W,
+                height: C_H,
                 backgroundColor: '#f5f5f4',
                 borderRadius: 12,
                 overflow: 'hidden'
             }}
         >
             <Canvas
-                style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}
+                style={{ width: C_W, height: C_H }}
             >
                 {/* Image with Blur Filter */}
                 <Group

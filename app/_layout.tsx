@@ -59,10 +59,16 @@ export default function RootLayout() {
 }
 
 // RootLayoutNav handles the router and rendering
+import { ProProvider } from '@/context/ProContext';
+
+// ...
+
 function RootLayoutNav() {
   return (
     <AuthProvider>
-      <RootLayoutNavContent />
+      <ProProvider>
+        <RootLayoutNavContent />
+      </ProProvider>
     </AuthProvider>
   );
 }

@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { decode } from 'base64-arraybuffer';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 export async function uploadReferenceImage(uri: string, userId: string): Promise<string | null> {
     try {

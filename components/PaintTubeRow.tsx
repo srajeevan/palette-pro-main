@@ -1,55 +1,54 @@
 import React from 'react';
-import { Text, View } from 'react-native';
-import Svg, { Path, Rect } from 'react-native-svg';
+import { StyleSheet, Text, View } from 'react-native';
 
 interface PaintTubeRowProps {
     color: string;
     percentage: number;
     name: string;
+    isLocked?: boolean;
 }
 
-const PaintTubeIcon = ({ color }: { color: string }) => {
+export const PaintTubeRow = ({ color, percentage, name, isLocked }: PaintTubeRowProps) => {
     return (
-        <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
-            {/* Tube Body - slightly tapered rectangle */}
-            <Path
-                d="M6 8 L18 8 L16 20 L8 20 Z"
-                fill={color}
-                stroke="#d1d5db"
-                strokeWidth={1}
-            />
-            {/* Tube Cap - Gray rectangle on top */}
-            <Rect
-                x="9"
-                y="4"
-                width="6"
-                height="4"
-                fill="#4b5563"
-                rx={1}
-            />
-            {/* Optional: A small "shine" or highlight */}
-            <Path d="M8 9 L10 18" stroke="white" strokeOpacity={0.3} strokeWidth={2} />
-        </Svg>
-    );
-};
+        <View style={styles.row}>
+            {/* Color Swatch */}
+            <View style={[styles.swatch, { backgroundColor: color }]} />
 
-export const PaintTubeRow = ({ color, percentage, name }: PaintTubeRowProps) => {
-    return (
-        <View className="flex-row items-center mb-4">
-            {/* Icon Container */}
-            <View className="mr-3">
-                <PaintTubeIcon color={color} />
-            </View>
-
-            {/* Text Info */}
-            <View className="flex-row items-baseline flex-1">
-                <Text className="text-lg text-stone-900 w-14" style={{ fontFamily: 'Inter_700Bold' }}>
-                    {percentage}%
-                </Text>
-                <Text className="text-base text-stone-600 flex-1 flex-wrap" numberOfLines={2} style={{ fontFamily: 'Inter_400Regular' }}>
-                    {name}
+            {/* Details */}
+            <View style={styles.details}>
+                <Text style={styles.name}>{name}</Text>
+                <Text style={styles.percentage}>
+                    {isLocked ? '?? %' : `${percentage}%`}
                 </Text>
             </View>
         </View>
     );
 };
+
+const styles = StyleSheet.create({
+    row: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    swatch: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        marginRight: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.1)',
+    },
+    details: {
+        flex: 1,
+    },
+    name: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#1f2937',
+    },
+    percentage: {
+        fontSize: 12,
+        color: '#6b7280',
+    }
+});

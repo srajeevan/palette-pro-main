@@ -1,22 +1,27 @@
 import { useProjectStore } from '@/store/useProjectStore';
-import { Canvas, Image, useImage, Paint, ColorMatrix, Group } from '@shopify/react-native-skia';
+import { Canvas, ColorMatrix, Group, Image, Paint, useImage } from '@shopify/react-native-skia';
 import React, { forwardRef, useMemo } from 'react';
 import { Dimensions, View } from 'react-native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const CANVAS_WIDTH = SCREEN_WIDTH;
-const CANVAS_HEIGHT = SCREEN_HEIGHT * 0.6;
+const DEFAULT_WIDTH = SCREEN_WIDTH;
+const DEFAULT_HEIGHT = SCREEN_HEIGHT * 0.5;
 
 interface ValueMapCanvasProps {
     grayscaleEnabled: boolean;
     posterizeLevels: number;
+    width?: number;
+    height?: number;
 }
 
 export const ValueMapCanvas = forwardRef<any, ValueMapCanvasProps>(
-    ({ grayscaleEnabled, posterizeLevels }, ref) => {
+    ({ grayscaleEnabled, posterizeLevels, width, height }, ref) => {
         const { imageUri } = useProjectStore();
         const skiaImage = useImage(imageUri || '');
+
+        const C_W = width || DEFAULT_WIDTH;
+        const C_H = height || DEFAULT_HEIGHT;
 
         // Grayscale color matrix
         const grayscaleMatrix = useMemo(() => {
@@ -25,7 +30,7 @@ export const ValueMapCanvas = forwardRef<any, ValueMapCanvasProps>(
                 0.2126, 0.7152, 0.0722, 0, 0, // Red channel
                 0.2126, 0.7152, 0.0722, 0, 0, // Green channel
                 0.2126, 0.7152, 0.0722, 0, 0, // Blue channel
-                0,      0,      0,      1, 0, // Alpha channel
+                0, 0, 0, 1, 0, // Alpha channel
             ];
         }, [grayscaleEnabled]);
 
@@ -45,7 +50,7 @@ export const ValueMapCanvas = forwardRef<any, ValueMapCanvasProps>(
 
             if (grayscaleMatrix && posterizeEffect > 1) {
                 // Combine grayscale with contrast boost for posterization effect
-                const contrast = 1 + (posterizeEffect / 12) * 2; // Scale contrast based on levels
+                const contrast = 1 + (posterizeEffect / 12) * 1.5; // Reduced multiplier from 2 to 1.5
                 const translate = (1 - contrast) / 2 * 255;
 
                 return [
@@ -62,7 +67,7 @@ export const ValueMapCanvas = forwardRef<any, ValueMapCanvasProps>(
 
             if (posterizeEffect > 1) {
                 // Just posterization (contrast boost)
-                const contrast = 1 + (posterizeEffect / 12) * 2;
+                const contrast = 1 + (posterizeEffect / 12) * 1.5; // Reduced multiplier
                 const translate = (1 - contrast) / 2 * 255;
 
                 return [
@@ -80,8 +85,8 @@ export const ValueMapCanvas = forwardRef<any, ValueMapCanvasProps>(
             return (
                 <View
                     style={{
-                        width: CANVAS_WIDTH,
-                        height: CANVAS_HEIGHT,
+                        width: C_W,
+                        height: C_H,
                         backgroundColor: '#fafaf9',
                         borderRadius: 12,
                         justifyContent: 'center',
@@ -94,23 +99,23 @@ export const ValueMapCanvas = forwardRef<any, ValueMapCanvasProps>(
         // Calculate layout for render (fit image within canvas)
         const imgW = skiaImage.width();
         const imgH = skiaImage.height();
-        const scale = Math.min(CANVAS_WIDTH / imgW, CANVAS_HEIGHT / imgH);
+        const scale = Math.min(C_W / imgW, C_H / imgH);
         const displayW = imgW * scale;
         const displayH = imgH * scale;
-        const x = (CANVAS_WIDTH - displayW) / 2;
-        const y = (CANVAS_HEIGHT - displayH) / 2;
+        const x = (C_W - displayW) / 2;
+        const y = (C_H - displayH) / 2;
 
         return (
             <View
                 style={{
-                    width: CANVAS_WIDTH,
-                    height: CANVAS_HEIGHT,
+                    width: C_W,
+                    height: C_H,
                     backgroundColor: '#f5f5f4',
                     borderRadius: 12,
                     overflow: 'hidden'
                 }}
             >
-                <Canvas style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}>
+                <Canvas style={{ width: C_W, height: C_H }}>
                     {combinedMatrix ? (
                         <Group
                             layer={
