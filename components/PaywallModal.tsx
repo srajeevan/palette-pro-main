@@ -2,8 +2,9 @@ import { AppText } from '@/components/AppText';
 import { usePro } from '@/context/ProContext';
 import { BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
 import { Crown } from 'lucide-react-native';
-import React, { forwardRef, useMemo, useState } from 'react';
+import React, { forwardRef, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, TouchableOpacity, View } from 'react-native';
+import { PurchasesPackage } from 'react-native-purchases';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -13,17 +14,26 @@ interface PaywallModalProps {
 
 export const PaywallModal = forwardRef<BottomSheetModal, PaywallModalProps>(({ onClose }, ref) => {
     const snapPoints = useMemo(() => ['85%'], []);
-    const { unlockPro, restorePurchases, isLoading, isPro } = usePro();
-    const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
+    const { purchasePackage, restorePurchases, isLoading, isPro, offerings } = usePro();
+    const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null);
+
+    // Auto-select yearly if available
+    useEffect(() => {
+        if (offerings?.availablePackages) {
+            const yearly = offerings.availablePackages.find(p => p.packageType === 'ANNUAL');
+            if (yearly) setSelectedPackage(yearly);
+        }
+    }, [offerings]);
 
     const handlePurchase = async () => {
-        await unlockPro();
-        // If successful, close modal
-        if (// @ts-ignore - checking internal ref method if needed or just relying on parent
-            true
-        ) {
+        if (!selectedPackage) return;
+
+        await purchasePackage(selectedPackage);
+
+        if (isPro) {
             // @ts-ignore
             ref?.current?.dismiss();
+            onClose?.();
         }
     };
 
@@ -33,6 +43,26 @@ export const PaywallModal = forwardRef<BottomSheetModal, PaywallModalProps>(({ o
         { icon: '👁️', title: 'Tonal Analysis', desc: 'See values like the Old Masters.' },
         { icon: '💾', title: 'Unlimited Library', desc: 'Your digital studio, always with you.' },
     ];
+
+    const getPriceString = (type: 'ANNUAL' | 'MONTHLY') => {
+        const pkg = offerings?.availablePackages.find(p => p.packageType === type);
+        return pkg?.product.priceString || 'Loading...';
+    };
+
+    // Calculate simulated monthly price for yearly plan
+    const getYearlyMonthlyPrice = () => {
+        const pkg = offerings?.availablePackages.find(p => p.packageType === 'ANNUAL');
+        if (pkg) {
+            const price = pkg.product.price;
+            return (price / 12).toFixed(2);
+        }
+        return '...';
+    };
+
+    // Helper to get package by type for selection logic
+    const getPackage = (type: 'ANNUAL' | 'MONTHLY') => {
+        return offerings?.availablePackages.find(p => p.packageType === type) || null;
+    };
 
     return (
         <BottomSheetModal
@@ -82,61 +112,70 @@ export const PaywallModal = forwardRef<BottomSheetModal, PaywallModalProps>(({ o
                 </View>
 
                 {/* Pricing Options */}
-                <View className="mb-4 space-y-3">
-                    {/* Yearly Option - Highlighted */}
-                    <TouchableOpacity
-                        className={`flex-row items-center p-4 rounded-2xl border-2 ${selectedPlan === 'yearly' ? 'border-[#F59E0B] bg-[#1a1500]' : 'border-[#28282A]'}`}
-                        onPress={() => setSelectedPlan('yearly')}
-                    >
-                        <View className={`w-5 h-5 rounded-full border-2 items-center justify-center mr-3 ${selectedPlan === 'yearly' ? 'border-[#F59E0B]' : 'border-stone-600'}`}>
-                            {selectedPlan === 'yearly' && <View className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" />}
-                        </View>
-                        <View className="flex-1">
-                            <View className="flex-row items-center">
-                                <AppText className="font-bold text-base mr-2" style={{ color: '#FFFFFF' }}>Yearly Access</AppText>
-                                <View className="bg-[#F59E0B] px-1.5 py-0.5 rounded">
-                                    <AppText className="text-[10px] font-bold text-black uppercase" style={{ fontFamily: 'SpaceMono' }}>BEST VALUE</AppText>
-                                </View>
+                {offerings ? (
+                    <View className="mb-4 space-y-3">
+                        {/* Yearly Option - Highlighted */}
+                        <TouchableOpacity
+                            className={`flex-row items-center p-4 rounded-2xl border-2 ${selectedPackage?.packageType === 'ANNUAL' ? 'border-[#F59E0B] bg-[#1a1500]' : 'border-[#28282A]'}`}
+                            onPress={() => setSelectedPackage(getPackage('ANNUAL'))}
+                        >
+                            <View className={`w-5 h-5 rounded-full border-2 items-center justify-center mr-3 ${selectedPackage?.packageType === 'ANNUAL' ? 'border-[#F59E0B]' : 'border-stone-600'}`}>
+                                {selectedPackage?.packageType === 'ANNUAL' && <View className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" />}
                             </View>
-                            {/* Hook: Safe 40% */}
-                            <AppText className="text-xs mt-0.5" style={{ color: '#A1A1AA' }}>Save 40% vs Monthly. Billed at $34.99/yr</AppText>
-                        </View>
-                        <View className="items-end">
-                            <AppText className="font-bold text-lg" style={{ color: '#FFFFFF' }}>$2.91<AppText className="text-xs" style={{ color: '#A1A1AA' }}>/mo</AppText></AppText>
-                        </View>
-                    </TouchableOpacity>
+                            <View className="flex-1">
+                                <View className="flex-row items-center">
+                                    <AppText className="font-bold text-base mr-2" style={{ color: '#FFFFFF' }}>Yearly Access</AppText>
+                                    <View className="bg-[#F59E0B] px-1.5 py-0.5 rounded">
+                                        <AppText className="text-[10px] font-bold text-black uppercase" style={{ fontFamily: 'SpaceMono' }}>BEST VALUE</AppText>
+                                    </View>
+                                </View>
+                                {/* Hook: Safe 40% */}
+                                <AppText className="text-xs mt-0.5" style={{ color: '#A1A1AA' }}>
+                                    {`Billed at ${getPriceString('ANNUAL')}/yr`}
+                                </AppText>
+                            </View>
+                            <View className="items-end">
+                                <AppText className="font-bold text-lg" style={{ color: '#FFFFFF' }}>${getYearlyMonthlyPrice()}<AppText className="text-xs" style={{ color: '#A1A1AA' }}>/mo</AppText></AppText>
+                            </View>
+                        </TouchableOpacity>
 
-                    {/* Monthly Option */}
-                    <TouchableOpacity
-                        className={`flex-row items-center p-4 rounded-2xl border ${selectedPlan === 'monthly' ? 'border-[#F59E0B] bg-[#161618]' : 'border-[#28282A]'}`}
-                        onPress={() => setSelectedPlan('monthly')}
-                    >
-                        <View className={`w-5 h-5 rounded-full border-2 items-center justify-center mr-3 ${selectedPlan === 'monthly' ? 'border-[#F59E0B]' : 'border-stone-600'}`}>
-                            {selectedPlan === 'monthly' && <View className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" />}
-                        </View>
-                        <View className="flex-1">
-                            <AppText className="font-bold text-base" style={{ color: selectedPlan === 'monthly' ? '#FFFFFF' : '#71717A' }}>Monthly Access</AppText>
-                            {/* Hook: Less than a tube of paint */}
-                            <AppText className="text-xs mt-0.5" style={{ color: '#71717A' }}>Less than a tube of paint.</AppText>
-                        </View>
-                        <View className="items-end">
-                            <AppText className="font-bold text-lg" style={{ color: '#FFFFFF' }}>$4.99<AppText className="text-xs" style={{ color: '#A1A1AA' }}>/mo</AppText></AppText>
-                        </View>
-                    </TouchableOpacity>
-                </View>
+                        {/* Monthly Option */}
+                        <TouchableOpacity
+                            className={`flex-row items-center p-4 rounded-2xl border ${selectedPackage?.packageType === 'MONTHLY' ? 'border-[#F59E0B] bg-[#161618]' : 'border-[#28282A]'}`}
+                            onPress={() => setSelectedPackage(getPackage('MONTHLY'))}
+                        >
+                            <View className={`w-5 h-5 rounded-full border-2 items-center justify-center mr-3 ${selectedPackage?.packageType === 'MONTHLY' ? 'border-[#F59E0B]' : 'border-stone-600'}`}>
+                                {selectedPackage?.packageType === 'MONTHLY' && <View className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" />}
+                            </View>
+                            <View className="flex-1">
+                                <AppText className="font-bold text-base" style={{ color: selectedPackage?.packageType === 'MONTHLY' ? '#FFFFFF' : '#71717A' }}>Monthly Access</AppText>
+                                {/* Hook: Less than a tube of paint */}
+                                <AppText className="text-xs mt-0.5" style={{ color: '#71717A' }}>Less than a tube of paint.</AppText>
+                            </View>
+                            <View className="items-end">
+                                <AppText className="font-bold text-lg" style={{ color: '#FFFFFF' }}>{getPriceString('MONTHLY')}<AppText className="text-xs" style={{ color: '#A1A1AA' }}>/mo</AppText></AppText>
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    <View className="py-8 items-center">
+                        <ActivityIndicator color="#F59E0B" />
+                        <AppText className="text-stone-500 mt-2">Loading offers...</AppText>
+                    </View>
+                )}
 
                 {/* CTA */}
                 <TouchableOpacity
                     onPress={handlePurchase}
-                    disabled={isLoading}
+                    disabled={isLoading || !selectedPackage}
                     className="w-full bg-[#F59E0B] py-4 rounded-full items-center justify-center mb-6 shadow-lg shadow-orange-500/40"
-                    style={{ shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 }}
+                    style={{ shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, opacity: (isLoading || !selectedPackage) ? 0.5 : 1 }}
                 >
                     {isLoading ? (
                         <ActivityIndicator color="black" />
                     ) : (
                         <AppText className="font-bold text-lg text-black uppercase tracking-wide" style={{ fontFamily: 'Inter_700Bold' }}>
-                            {selectedPlan === 'yearly' ? 'Subscribe Yearly' : 'Subscribe Monthly'}
+                            {selectedPackage?.packageType === 'ANNUAL' ? 'Subscribe Yearly' : 'Subscribe Monthly'}
                         </AppText>
                     )}
                 </TouchableOpacity>

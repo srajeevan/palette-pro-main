@@ -1,13 +1,18 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
+import Purchases, { CustomerInfo, PurchasesOffering, PurchasesPackage } from 'react-native-purchases';
+
+// RevenueCat Configuration
+const API_KEY_IOS = 'appl_ErKGCnkiNeQlPvFFuVAnClgRNho';
+const ENTITLEMENT_ID = 'pro';
 
 interface ProContextType {
     isPro: boolean;
     isLoading: boolean;
-    unlockPro: () => Promise<void>;
+    offerings: PurchasesOffering | null;
+    purchasePackage: (pack: PurchasesPackage) => Promise<void>;
     restorePurchases: () => Promise<void>;
-    resetProStatus: () => Promise<void>;
+    resetProStatus: () => Promise<void>; // Debug only
 }
 
 const ProContext = createContext<ProContextType | undefined>(undefined);
@@ -15,35 +20,62 @@ const ProContext = createContext<ProContextType | undefined>(undefined);
 export function ProProvider({ children }: { children: React.ReactNode }) {
     const [isPro, setIsPro] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [offerings, setOfferings] = useState<PurchasesOffering | null>(null);
 
     useEffect(() => {
-        checkProStatus();
+        initRevenueCat();
     }, []);
 
-    const checkProStatus = async () => {
+    const initRevenueCat = async () => {
         try {
-            // Check for existing "PRO" status in local storage (Mock for now)
-            const status = await AsyncStorage.getItem('@palette_pro_status');
-            setIsPro(status === 'active');
+            if (Platform.OS === 'ios') {
+                await Purchases.configure({ apiKey: API_KEY_IOS });
+            }
+            // Add Android key here if needed
+
+            const info = await Purchases.getCustomerInfo();
+            checkEntitlements(info);
+
+            await loadOfferings();
         } catch (error) {
-            console.error('Failed to check pro status', error);
+            console.error('Failed to init RevenueCat', error);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const unlockPro = async () => {
-        // Mock Purchase Flow
-        setIsLoading(true);
-        // Simulate network request
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
+    const loadOfferings = async () => {
         try {
-            await AsyncStorage.setItem('@palette_pro_status', 'active');
-            setIsPro(true);
-            // Haptic would go here
+            const offerings = await Purchases.getOfferings();
+            if (offerings.current !== null) {
+                setOfferings(offerings.current);
+            }
         } catch (error) {
-            Alert.alert('Error', 'Failed to process purchase. Please try again.');
+            console.error('Failed to load offerings', error);
+        }
+    };
+
+    const checkEntitlements = (info: CustomerInfo) => {
+        if (typeof info.entitlements.active[ENTITLEMENT_ID] !== 'undefined') {
+            setIsPro(true);
+        } else {
+            setIsPro(false);
+        }
+    };
+
+    const purchasePackage = async (pack: PurchasesPackage) => {
+        setIsLoading(true);
+        try {
+            const { customerInfo } = await Purchases.purchasePackage(pack);
+            checkEntitlements(customerInfo);
+        } catch (error: any) {
+            console.error('Purchase Error:', error);
+            if (!error.userCancelled) {
+                Alert.alert('Error', error.message);
+            } else {
+                // Optional: Alert even on cancel to confirm it was effectively cancelled
+                console.log('User cancelled transaction');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -51,31 +83,36 @@ export function ProProvider({ children }: { children: React.ReactNode }) {
 
     const restorePurchases = async () => {
         setIsLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        // Mock restore check
-        // For now, let's say restore always finds nothing unless previously purchased locally
-        const status = await AsyncStorage.getItem('@palette_pro_status');
-        if (status === 'active') {
-            setIsPro(true);
-            Alert.alert('Success', 'Purchases restored.');
-        } else {
-            Alert.alert('Restore', 'No active subscriptions found.');
+        try {
+            const info = await Purchases.restorePurchases();
+            checkEntitlements(info);
+
+            // Show result
+            if (typeof info.entitlements.active[ENTITLEMENT_ID] !== 'undefined') {
+                Alert.alert('Success', 'Purchases restored.');
+            } else {
+                Alert.alert('Restore', 'No active subscriptions found.');
+            }
+        } catch (error: any) {
+            Alert.alert('Error', error.message);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
+    // Debug method to force logout from RevenueCat (Sandbox only usually)
     const resetProStatus = async () => {
-        try {
-            await AsyncStorage.removeItem('@palette_pro_status');
+        if (__DEV__) {
+            await Purchases.logOut();
             setIsPro(false);
-            Alert.alert('Debug', 'Pro status reset to Free.');
-        } catch (error) {
-            console.error(error);
+            Alert.alert('Debug', 'Logged out of RevenueCat. Pro status reset.');
+            // Re-login anonymous to reset
+            await Purchases.logIn(Math.random().toString(36).substring(7));
         }
     };
 
     return (
-        <ProContext.Provider value={{ isPro, isLoading, unlockPro, restorePurchases, resetProStatus }}>
+        <ProContext.Provider value={{ isPro, isLoading, offerings, purchasePackage, restorePurchases, resetProStatus }}>
             {children}
         </ProContext.Provider>
     );
@@ -88,3 +125,4 @@ export function usePro() {
     }
     return context;
 }
+

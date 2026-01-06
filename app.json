@@ -15,7 +15,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.sreejith.palettepro"
+      "bundleIdentifier": "com.sreejith.palettepro",
+      "appleTeamId": "BM733R453B"
     },
     "android": {
       "adaptiveIcon": {
