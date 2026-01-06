@@ -1,7 +1,8 @@
+import { usePro } from '@/context/ProContext';
 import { getContrastColor, hexToRgb } from '@/utils/colorUtils';
 import { calculateMix, MixResult } from '@/utils/mixingEngine';
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
-import { X } from 'lucide-react-native';
+import { Lock, X } from 'lucide-react-native';
 import React, { forwardRef, useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
@@ -9,11 +10,13 @@ import { AppText } from './AppText';
 
 export type MixingRecipeBottomSheetProps = {
     targetColor: string | null;
+    onUnlock: () => void;
 };
 
 export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipeBottomSheetProps>(
-    ({ targetColor }, ref) => {
+    ({ targetColor, onUnlock }, ref) => {
         // const snapPoints = useMemo(() => ['60%'], []);
+        const { isPro } = usePro();
         const [mixResult, setMixResult] = useState<MixResult | null>(null);
         const [isCalculating, setIsCalculating] = useState(false);
         const progress = useSharedValue(0);
@@ -181,16 +184,43 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                                     }}
                                 >
                                     {/* Recipe Text */}
-                                    <AppText
-                                        style={{
-                                            fontFamily: 'PlayfairDisplay_400Regular',
-                                            fontSize: 20,
-                                            color: '#E5E5E5',
-                                            lineHeight: 30
-                                        }}
-                                    >
-                                        {mixResult?.recipe || 'No recipe available'}
-                                    </AppText>
+                                    {isPro ? (
+                                        <AppText
+                                            style={{
+                                                fontFamily: 'PlayfairDisplay_400Regular',
+                                                fontSize: 20,
+                                                color: '#E5E5E5',
+                                                lineHeight: 30
+                                            }}
+                                        >
+                                            {mixResult?.recipe || 'No recipe available'}
+                                        </AppText>
+                                    ) : (
+                                        <TouchableOpacity activeOpacity={0.9} onPress={onUnlock} style={{ alignItems: 'center', justifyContent: 'center' }}>
+                                            <View style={{ position: 'absolute', zIndex: 10, alignItems: 'center' }}>
+                                                <Lock size={24} color="#F59E0B" fill="#F59E0B" />
+                                                <AppText style={{ color: '#E4E4E7', fontFamily: 'Inter_700Bold', marginTop: 8, fontSize: 16 }}>
+                                                    Unlock Mixing Recipe
+                                                </AppText>
+                                                <AppText style={{ color: '#A1A1AA', fontSize: 13, marginTop: 4 }}>
+                                                    Pro users get exact paint mixtures
+                                                </AppText>
+                                            </View>
+                                            <AppText
+                                                style={{
+                                                    fontFamily: 'PlayfairDisplay_400Regular',
+                                                    fontSize: 20,
+                                                    color: '#E5E5E5',
+                                                    lineHeight: 30,
+                                                    opacity: 0.15, // Heavily dimmed to verify blur effect visually
+                                                    textAlign: 'center'
+                                                }}
+                                                className="blur-sm" // Native wind blur if available, otherwise rely on opacity+overlay
+                                            >
+                                                {"Titanium White + 2 parts Ultramarine Blue + Touch of Burnt Umber..."}
+                                            </AppText>
+                                        </TouchableOpacity>
+                                    )}
                                 </View>
                             </Animated.View>
 

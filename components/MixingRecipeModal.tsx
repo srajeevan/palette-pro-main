@@ -1,4 +1,3 @@
-import { PaywallModal } from '@/components/PaywallModal';
 import { usePro } from '@/context/ProContext';
 import { BlurView } from 'expo-blur';
 import React, { useMemo } from 'react';
@@ -7,10 +6,12 @@ import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { MultiSegmentDonut } from './MultiSegmentDonut';
 import { PaintTubeRow } from './PaintTubeRow';
 
+// ... imports
 interface MixingRecipeModalProps {
     visible: boolean;
     recipeData: string; // e.g., "50% Burnt Umber + 50% White"
     onClose: () => void;
+    onUnlock: () => void;
 }
 
 interface Ingredient {
@@ -55,13 +56,16 @@ const parseRecipe = (recipe: string): Ingredient[] => {
     });
 };
 
-export const MixingRecipeModal = ({ visible, recipeData, onClose }: MixingRecipeModalProps) => {
+export const MixingRecipeModal = ({ visible, recipeData, onClose, onUnlock }: MixingRecipeModalProps) => {
     const ingredients = useMemo(() => parseRecipe(recipeData), [recipeData]);
     const { isPro } = usePro();
-    const paywallRef = React.useRef<BottomSheetModal>(null);
 
     const handleUnlockPress = () => {
-        paywallRef.current?.present();
+        onClose(); // Close the recipe modal first
+        // Small delay to allow fade out? The parent can handle the unlock trigger.
+        setTimeout(() => {
+            onUnlock();
+        }, 300);
     };
 
     return (
@@ -91,7 +95,7 @@ export const MixingRecipeModal = ({ visible, recipeData, onClose }: MixingRecipe
                             {ingredients.length > 0 ? (
                                 <>
                                     {/* Left Column: Chart */}
-                                    <View style={[styles.chartColumn, !isPro && { opacity: 0.3, blurRadius: 4 }]}>
+                                    <View style={[styles.chartColumn, !isPro && { opacity: 0.1 }]}>
                                         <MultiSegmentDonut data={ingredients} size={140} strokeWidth={16} />
                                     </View>
 
@@ -140,8 +144,6 @@ export const MixingRecipeModal = ({ visible, recipeData, onClose }: MixingRecipe
                     </View>
                 </Animated.View>
             </View>
-
-            <PaywallModal ref={paywallRef} />
         </Modal>
     );
 };

@@ -1,6 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
-import React from 'react';
+import { ImageOff } from 'lucide-react-native';
+import React, { useState } from 'react';
 import { Dimensions, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
     FadeInDown,
@@ -28,6 +29,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export const GalleryCard = ({ item, index, onPress }: GalleryCardProps) => {
     const scale = useSharedValue(1);
+    const [hasError, setHasError] = useState(false);
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scale.value }],
@@ -59,12 +61,19 @@ export const GalleryCard = ({ item, index, onPress }: GalleryCardProps) => {
             >
                 {/* Image Section */}
                 <View style={styles.imageContainer}>
-                    <Image
-                        source={{ uri: item.imageUrl }}
-                        style={styles.image}
-                        contentFit="cover"
-                        transition={200}
-                    />
+                    {hasError || !item.imageUrl ? (
+                        <View className="flex-1 items-center justify-center bg-[#27272A]">
+                            <ImageOff size={24} color="#52525B" />
+                        </View>
+                    ) : (
+                        <Image
+                            source={{ uri: item.imageUrl }}
+                            style={styles.image}
+                            contentFit="cover"
+                            transition={200}
+                            onError={() => setHasError(true)}
+                        />
+                    )}
 
                     {/* Glass Footer Overlay */}
                     <View style={styles.glassFooter}>

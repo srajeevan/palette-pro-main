@@ -9,7 +9,7 @@ import { useProjectStore } from '@/store/useProjectStore';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Dimensions, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -28,10 +28,27 @@ export default function SquintScreen() {
     const MAX_BLUR = 50;
 
     const handleUploadPress = () => {
-        if (isPro) {
-            pickImage();
-        } else {
+        // Allow upload for free user too? Prompt implies "For squint... upgrade modal should show up when moving slides 8%".
+        // It doesn't explicitly say "Gate Upload". 
+        // Logic: "Demo Mode" usually meant no upload. 
+        // But if they can't upload, they can't use the tool at all unless there's a demo image.
+        // Assuming we keep Upload gated for Consistency? 
+        // "Make the value map feature as free." -> Implies Squint is NOT fully free.
+        // "For the squint, once the user blur... then upgrade modal".
+        // This implies they CAN use it up to a point. If they can't upload, they can't use it.
+        // So I will UNLOCK upload, but gate the Slider.
+        pickImage();
+    };
+
+    const handleBlurChange = (value: number) => {
+        const percentage = (value / MAX_BLUR) * 100;
+        if (!isPro && percentage > 8) {
+            // Trigger paywall and cap value
             paywallRef.current?.present();
+            // Cap at 8% (approx 4)
+            setBlurIntensity(MAX_BLUR * 0.08);
+        } else {
+            setBlurIntensity(value);
         }
     };
 
@@ -44,19 +61,12 @@ export default function SquintScreen() {
                         subtitle="Analyze values and composition."
                     />
 
-                    {/* Demo Mode / Paywall Prompt */}
-                    {!isPro && (
-                        <View className="mb-6 bg-[#161618] p-4 rounded-xl border border-[#F59E0B]">
-                            <Text className="text-[#F59E0B] font-bold text-center mb-1">PRO FEATURE</Text>
-                            <Text className="text-stone-400 text-center text-xs">Unlock to analyze your own photos.</Text>
-                        </View>
-                    )}
+                    {/* No blocked upload banner anymore */}
 
                     <View className="flex-1 -mt-5">
                         <UploadPlaceholderView onImageSelected={handleUploadPress} />
                     </View>
                 </View>
-                <PaywallModal ref={paywallRef} />
             </SafeAreaView>
         );
     }
@@ -71,15 +81,7 @@ export default function SquintScreen() {
                     className="mb-0 z-10 bg-[#0A0A0B]"
                 />
 
-                {/* Demo Banner */}
-                {!isPro && (
-                    <TouchableOpacity
-                        onPress={() => paywallRef.current?.present()}
-                        className="bg-[#F59E0B] py-1 px-4 items-center justify-center flex-row z-20"
-                    >
-                        <Text className="text-black font-bold text-xs uppercase tracking-wider">Demo Mode • Tap to Unlock</Text>
-                    </TouchableOpacity>
-                )}
+                {/* No top banner "Unlock Unlimited Access" */}
 
                 {/* Main Scrollable Content */}
                 <ScrollView
@@ -113,7 +115,7 @@ export default function SquintScreen() {
                     <View className="px-6">
                         <SquintControls
                             blurIntensity={blurIntensity}
-                            setBlurIntensity={setBlurIntensity}
+                            setBlurIntensity={handleBlurChange}
                             maxBlur={MAX_BLUR}
                         />
                     </View>

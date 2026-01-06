@@ -2,7 +2,8 @@ import { AppText } from '@/components/AppText';
 import { GuestSyncCard } from '@/components/GuestSyncCard';
 import { SettingsRow } from '@/components/SettingsRow';
 import { useAuth } from '@/context/AuthContext';
-import { HelpCircle, Lock, LogOut, Moon, Zap } from 'lucide-react-native';
+import { usePro } from '@/context/ProContext';
+import { Crown, HelpCircle, Lock, LogOut, Moon, Zap } from 'lucide-react-native';
 import React from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, SlideInUp } from 'react-native-reanimated';
@@ -10,10 +11,12 @@ import Animated, { FadeIn, SlideInUp } from 'react-native-reanimated';
 interface SettingsModalProps {
     visible: boolean;
     onClose: () => void;
+    onManageSubscription: () => void;
 }
 
-export const SettingsModal = ({ visible, onClose }: SettingsModalProps) => {
+export const SettingsModal = ({ visible, onClose, onManageSubscription }: SettingsModalProps) => {
     const { isGuest, signOut } = useAuth();
+    const { isPro, resetProStatus } = usePro();
 
     // Mock Toggle States
     const [darkMode, setDarkMode] = React.useState(false);
@@ -56,6 +59,26 @@ export const SettingsModal = ({ visible, onClose }: SettingsModalProps) => {
                             </View>
                         )}
 
+                        {/* Group 0: Membership */}
+                        <View style={styles.group}>
+                            <AppText style={styles.groupTitle}>MEMBERSHIP</AppText>
+                            <SettingsRow
+                                label={isPro ? "Pro Member" : "Upgrade to Pro"}
+                                icon={<Crown size={20} />}
+                                type={isPro ? "link" : "link"} // Both are links/buttons
+                                value={isPro} // Not really used for link type but good for tracking
+                                onPress={onManageSubscription}
+                            // Optional: Change color if upgrade needed
+                            // We can handle this by passing a custom icon with color above if needed, 
+                            // but SettingsRow handles coloring.
+                            />
+                            {isPro && (
+                                <AppText style={{ color: '#F59E0B', fontSize: 12, marginTop: -8, marginBottom: 12, marginLeft: 44, fontFamily: 'Inter_500Medium' }}>
+                                    ● Status: Active
+                                </AppText>
+                            )}
+                        </View>
+
                         {/* Group 1: Preferences */}
                         <View style={styles.group}>
                             <AppText style={styles.groupTitle}>PREFERENCES</AppText>
@@ -95,6 +118,13 @@ export const SettingsModal = ({ visible, onClose }: SettingsModalProps) => {
                                 icon={<LogOut size={20} />}
                                 type="destructive"
                                 onPress={signOut}
+                            />
+                            {/* Debug Section */}
+                            <SettingsRow
+                                label="[DEBUG] Reset Pro Status"
+                                icon={<Zap size={20} color="#EF4444" />}
+                                type="destructive"
+                                onPress={resetProStatus}
                             />
                         </View>
 

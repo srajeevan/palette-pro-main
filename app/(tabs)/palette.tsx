@@ -3,9 +3,11 @@ import { AppText } from '@/components/AppText';
 import { ColorSkiaCanvas, ColorSkiaCanvasRef } from '@/components/ColorSkiaCanvas';
 import { MixingRecipeBottomSheet } from '@/components/MixingRecipeBottomSheet';
 import { PaletteSwatch } from '@/components/PaletteSwatch';
+import { PaywallModal } from '@/components/PaywallModal';
 import { UploadPlaceholderView } from '@/components/UploadPlaceholderView';
 import { useAuth } from '@/context/AuthContext';
 import { savePalette } from '@/services/paletteService';
+import { uploadReferenceImage } from '@/services/storageService';
 import { useImagePicker } from '@/services/useImagePicker';
 import { useProjectStore } from '@/store/useProjectStore';
 import { generatePalette } from '@/utils/paletteEngine';
@@ -38,23 +40,24 @@ export default function PaletteScreen() {
     const router = useRouter();
     const { user } = useAuth();
     const { pickImage } = useImagePicker();
+
+    // Inside PaletteScreen:
     const canvasRef = useRef<ColorSkiaCanvasRef>(null);
     const mixingRecipeBottomSheetRef = useRef<BottomSheetModal>(null);
+    const paywallRef = useRef<BottomSheetModal>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [selectedColor, setSelectedColor] = useState<string | null>(null);
 
     // Auto-generate palette on image load if empty
-    React.useEffect(() => {
-        if (imageUri && generatedPalette.length === 0) {
+    // We now rely on the onImageLoaded callback from the Canvas to ensure the Skia image is ready (no race condition)
+    const handleCanvasImageLoaded = () => {
+        console.log('🖼️ Canvas Image Loaded - Checking auto-generate...');
+        if (generatedPalette.length === 0) {
             console.log('🔄 Auto-generating palette...');
-            // Small delay to ensure canvas/image is ready
-            const timer = setTimeout(() => {
-                handleGenerate();
-            }, 500);
-            return () => clearTimeout(timer);
+            handleGenerate();
         }
-    }, [imageUri]);
+    };
 
     // Zoom/Pan State (Purely for viewing)
     const scale = useSharedValue(1);
@@ -125,7 +128,7 @@ export default function PaletteScreen() {
                 console.error("Palette Gen Error:", error);
             }
         } else {
-            console.error('❌ handleGenerate - No image snapshot available');
+            console.error('❌ handleGenerate - No image snapshot available - Image likely not fully loaded yet');
         }
         setIsGenerating(false);
     };
@@ -171,10 +174,30 @@ export default function PaletteScreen() {
                         }
 
                         setIsSaving(true);
+
+                        // 1. Upload Image to Supabase Storage
+                        let uploadedImageUrl = imageUri;
+                        if (imageUri) {
+                            // Check if it's already a remote URL (don't re-upload)
+                            if (imageUri.startsWith('http')) {
+                                console.log('☁️ Image is already remote, skipping upload.');
+                                uploadedImageUrl = imageUri;
+                            } else if (user.id) {
+                                // It's a local file, upload it
+                                console.log('⬆️ Uploading local image to cloud...');
+                                const publicUrl = await uploadReferenceImage(imageUri, user.id);
+                                if (publicUrl) {
+                                    uploadedImageUrl = publicUrl;
+                                    console.log('✅ Upload success:', publicUrl);
+                                }
+                            }
+                        }
+
+                        // 2. Save Palette with Cloud Image URL
                         const { data, error } = await savePalette({
                             name: name.trim(),
                             colors: generatedPalette,
-                            image_url: imageUri
+                            image_url: uploadedImageUrl
                         });
                         setIsSaving(false);
 
@@ -262,11 +285,13 @@ export default function PaletteScreen() {
                             alignSelf: 'center', // Center the narrower canvas
                             overflow: 'hidden',
                             borderRadius: 24, // Uniform radius for Floating Card look
-                            backgroundColor: '#f5f5f4', // Changed to white to match Squint/ValueMap
+                            backgroundColor: '#1C1C1E', // Match dark theme card background
                             marginBottom: 24,
                             marginTop: 16, // Add top margin to separate from Header
                             borderWidth: 1,
                             borderColor: 'rgba(255,255,255,0.1)',
+                            justifyContent: 'center',
+                            alignItems: 'center',
                         }}
                     >
                         <GestureDetector gesture={composedGesture}>
@@ -275,9 +300,16 @@ export default function PaletteScreen() {
                                     ref={canvasRef}
                                     width={CANVAS_WIDTH}
                                     height={CANVAS_HEIGHT}
+                                    onImageLoaded={handleCanvasImageLoaded}
                                 />
                             </Animated.View>
                         </GestureDetector>
+
+                        {/* Loading Overlay (if image is loading) - relies on store state or local state derived if needed */}
+                        {/* Since we don't track detailed image loading steps here easily without extra state, 
+                             setting the background to #1C1C1E prevents the harsh white flash. 
+                             The Canvas component also handles empty state.
+                          */}
                     </View>
 
                     {/* Palette Controls & Grid */}
@@ -363,7 +395,16 @@ export default function PaletteScreen() {
             <MixingRecipeBottomSheet
                 ref={mixingRecipeBottomSheetRef}
                 targetColor={selectedColor}
+                onUnlock={() => {
+                    mixingRecipeBottomSheetRef.current?.dismiss();
+                    // Small delay
+                    setTimeout(() => {
+                        paywallRef.current?.present();
+                    }, 300);
+                }}
             />
+
+            <PaywallModal ref={paywallRef} />
         </SafeAreaView>
     );
 }

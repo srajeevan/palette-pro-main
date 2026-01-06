@@ -1,7 +1,7 @@
 import { useProjectStore } from '@/store/useProjectStore';
 import { Canvas, Image, useCanvasRef, useImage } from '@shopify/react-native-skia';
 import React, { forwardRef, useImperativeHandle } from 'react';
-import { Dimensions, PixelRatio, View } from 'react-native';
+import { ActivityIndicator, Dimensions, PixelRatio, View } from 'react-native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -16,13 +16,20 @@ export interface ColorSkiaCanvasRef {
 interface ColorSkiaCanvasProps {
     width?: number;
     height?: number;
+    onImageLoaded?: () => void;
 }
 
 export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef, ColorSkiaCanvasProps>((props, ref) => {
-    const { width = CANVAS_WIDTH, height = CANVAS_HEIGHT } = props;
+    const { width = CANVAS_WIDTH, height = CANVAS_HEIGHT, onImageLoaded } = props;
     const { imageUri } = useProjectStore();
     const skiaImage = useImage(imageUri || '');
     const internalCanvasRef = useCanvasRef();
+
+    React.useEffect(() => {
+        if (skiaImage && onImageLoaded) {
+            onImageLoaded();
+        }
+    }, [skiaImage]);
 
     useImperativeHandle(ref, () => ({
         getImageSnapshot: () => {
@@ -86,8 +93,10 @@ export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef, ColorSkiaCanvasPro
         return (
             <View
                 style={{ width: props.width || CANVAS_WIDTH, height: props.height || CANVAS_HEIGHT }}
-                className="justify-center items-center bg-stone-50"
-            />
+                className="justify-center items-center bg-[#1C1C1E]"
+            >
+                <ActivityIndicator size="large" color="#A1A1AA" />
+            </View>
         );
     }
 

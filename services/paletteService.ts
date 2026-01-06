@@ -58,11 +58,14 @@ export async function savePalette(input: SavePaletteInput): Promise<{ data: Pale
 export async function loadPalettes(): Promise<{ data: Palette[] | null; error: Error | null }> {
     try {
         // Get current user
+        console.log('🔄 loadPalettes: Getting user...');
         const { data: { user }, error: userError } = await supabase.auth.getUser();
 
         if (userError || !user) {
+            console.error('❌ loadPalettes: User auth error:', userError);
             return { data: null, error: new Error('User not authenticated') };
         }
+        console.log('👤 loadPalettes: User ID:', user.id);
 
         // Fetch palettes
         const { data, error } = await supabase
@@ -72,13 +75,14 @@ export async function loadPalettes(): Promise<{ data: Palette[] | null; error: E
             .order('created_at', { ascending: false });
 
         if (error) {
-            console.error('Error loading palettes:', error);
+            console.error('❌ loadPalettes: Supabase error:', error);
             return { data: null, error: new Error(error.message) };
         }
 
+        console.log(`✅ loadPalettes: Found ${data?.length} palettes`);
         return { data, error: null };
     } catch (err) {
-        console.error('Unexpected error loading palettes:', err);
+        console.error('❌ loadPalettes: Unexpected error:', err);
         return { data: null, error: err as Error };
     }
 }

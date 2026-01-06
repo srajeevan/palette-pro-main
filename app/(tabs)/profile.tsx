@@ -16,6 +16,8 @@ import { SettingsModal } from '@/components/SettingsModal';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 
 
+import { PaywallModal } from '@/components/PaywallModal';
+
 // ... (imports)
 
 export default function ProfileScreen() {
@@ -28,6 +30,7 @@ export default function ProfileScreen() {
     const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
     const [showSettings, setShowSettings] = useState(false);
     const detailModalRef = useRef<BottomSheetModal>(null);
+    const paywallRef = useRef<BottomSheetModal>(null);
     const shareGeneratorRef = useRef<ShareCardGeneratorRef>(null);
 
     // Fetch on focus to get updates from Studio
@@ -41,20 +44,24 @@ export default function ProfileScreen() {
 
     const fetchPalettes = async () => {
         setLoadingPalettes(true);
+        console.log('🏁 Profile: fetchPalettes started');
         try {
             const { data, error } = await loadPalettes();
             if (error) {
-                console.error('Error loading palettes:', error);
+                console.error('❌ Profile: Error loading palettes:', error);
             } else if (data) {
+                console.log('📦 Profile: Received data:', data.length);
                 const items: GalleryItem[] = data.map(p => ({
                     id: p.id,
                     imageUrl: p.image_url || 'https://via.placeholder.com/400', // Fallback
                     colors: p.colors
                 }));
                 setGalleryItems(items);
+            } else {
+                console.log('⚠️ Profile: No data received');
             }
         } catch (e) {
-            console.error('Exception loading palettes:', e);
+            console.error('❌ Profile: Exception loading palettes:', e);
         } finally {
             setLoadingPalettes(false);
         }
@@ -170,6 +177,13 @@ export default function ProfileScreen() {
             <SettingsModal
                 visible={showSettings}
                 onClose={() => setShowSettings(false)}
+                onManageSubscription={() => {
+                    setShowSettings(false);
+                    // Small delay to allow modal to close smoothly before opening paywall
+                    setTimeout(() => {
+                        paywallRef.current?.present();
+                    }, 300);
+                }}
             />
 
             {/* Hidden Share Generator */}
@@ -180,6 +194,9 @@ export default function ProfileScreen() {
                     colors={selectedItem?.colors || []}
                 />
             </View>
+
+            {/* Paywall Modal */}
+            <PaywallModal ref={paywallRef} />
         </SafeAreaView>
     );
 }

@@ -15,14 +15,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.palettepro"
+      "bundleIdentifier": "com.sreejith.palettepro"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.anonymous.palettepro",
+      "package": "com.sreejith.palettepro",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },

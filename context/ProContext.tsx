@@ -7,6 +7,7 @@ interface ProContextType {
     isLoading: boolean;
     unlockPro: () => Promise<void>;
     restorePurchases: () => Promise<void>;
+    resetProStatus: () => Promise<void>;
 }
 
 const ProContext = createContext<ProContextType | undefined>(undefined);
@@ -63,8 +64,18 @@ export function ProProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
     };
 
+    const resetProStatus = async () => {
+        try {
+            await AsyncStorage.removeItem('@palette_pro_status');
+            setIsPro(false);
+            Alert.alert('Debug', 'Pro status reset to Free.');
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
     return (
-        <ProContext.Provider value={{ isPro, isLoading, unlockPro, restorePurchases }}>
+        <ProContext.Provider value={{ isPro, isLoading, unlockPro, restorePurchases, resetProStatus }}>
             {children}
         </ProContext.Provider>
     );

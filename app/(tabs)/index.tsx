@@ -3,6 +3,7 @@ import { AppText } from '@/components/AppText';
 import { ColorPointer } from '@/components/ColorPointer';
 import { ColorSkiaCanvas, ColorSkiaCanvasRef } from '@/components/ColorSkiaCanvas';
 import { MixingRecipeModal } from '@/components/MixingRecipeModal';
+import { PaywallModal } from '@/components/PaywallModal';
 import { UploadBottomSheet } from '@/components/UploadBottomSheet';
 import { UploadPlaceholderView } from '@/components/UploadPlaceholderView';
 import { useImagePicker } from '@/services/useImagePicker';
@@ -29,6 +30,7 @@ export default function PickerScreen() {
   const { pickImage, takePhoto } = useImagePicker();
   const { imageUri } = useProjectStore();
   const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const paywallRef = useRef<BottomSheetModal>(null);
   const canvasRef = useRef<ColorSkiaCanvasRef>(null);
 
   // Layout State
@@ -274,7 +276,14 @@ export default function PickerScreen() {
                 visible={isRecipeModalVisible}
                 recipeData={currentMix.recipe}
                 onClose={() => setIsRecipeModalVisible(false)}
+                onUnlock={() => {
+                  // Open Paywall Modal
+                  // We need a dedicated Paywall modal ref or reuse bottomSheetRef with a different state
+                  // For simplicity, let's create a dedicated Paywall ref in this component or handle it via a new state/ref
+                  paywallRef.current?.present();
+                }}
               />
+              <PaywallModal ref={paywallRef} />
             </View>
           </SafeAreaView>
         </Animated.View>
