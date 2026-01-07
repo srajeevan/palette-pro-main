@@ -6,11 +6,13 @@ import { PaletteSwatch } from '@/components/PaletteSwatch';
 import { PaywallModal } from '@/components/PaywallModal';
 import { UploadPlaceholderView } from '@/components/UploadPlaceholderView';
 import { useAuth } from '@/context/AuthContext';
-import { savePalette } from '@/services/paletteService';
+import { usePro } from '@/context/ProContext';
+import { getPaletteCount, savePalette } from '@/services/paletteService';
 import { uploadReferenceImage } from '@/services/storageService';
 import { useImagePicker } from '@/services/useImagePicker';
 import { useProjectStore } from '@/store/useProjectStore';
 import { generatePalette } from '@/utils/paletteEngine';
+import { showToast } from '@/utils/toast';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
@@ -39,6 +41,7 @@ export default function PaletteScreen() {
 
     const router = useRouter();
     const { user } = useAuth();
+    const { isPro } = usePro();
     const { pickImage } = useImagePicker();
 
     // Inside PaletteScreen:
@@ -148,15 +151,42 @@ export default function PaletteScreen() {
         });
     };
 
-    const handleSavePalette = () => {
+    const handleSavePalette = async () => {
         if (!user) {
-            Alert.alert('Not Logged In', 'Please log in to save palettes to your collection.');
+            showToast("Sign in to save your masterpiece! 🎨");
             return;
         }
 
         if (generatedPalette.length === 0) {
-            Alert.alert('No Palette', 'Please generate a palette first before saving.');
+            showToast("Ghost palette? 👻 Generate some colors first!");
             return;
+        }
+
+        // Gating: Free Limit Check (Max 3 Palettes)
+        if (!isPro) {
+            setIsSaving(true);
+            const count = await getPaletteCount();
+            setIsSaving(false);
+
+            if (count >= 3) {
+                Alert.alert(
+                    'Free Limit Reached',
+                    'You can save up to 3 palettes on the free plan. Upgrade to Pro for unlimited saves.',
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                            text: 'Upgrade',
+                            onPress: () => {
+                                // Small delay to allow alert to close
+                                setTimeout(() => {
+                                    paywallRef.current?.present();
+                                }, 200);
+                            }
+                        }
+                    ]
+                );
+                return;
+            }
         }
 
         // Show input dialog for palette name
@@ -167,7 +197,7 @@ export default function PaletteScreen() {
                 { text: 'Cancel', style: 'cancel' },
                 {
                     text: 'Save',
-                    onPress: async (name) => {
+                    onPress: async (name?: string) => {
                         if (!name || name.trim() === '') {
                             Alert.alert('Invalid Name', 'Please enter a valid palette name.');
                             return;
@@ -202,7 +232,7 @@ export default function PaletteScreen() {
                         setIsSaving(false);
 
                         if (error) {
-                            Alert.alert('Save Failed', error.message);
+                            showToast(error.message || "The cloud hiccuped. Try again? ☁️");
                         } else {
                             // Haptic feedback for success
                             try {
@@ -210,7 +240,9 @@ export default function PaletteScreen() {
                             } catch (e) {
                                 // Silently fail if haptics not available
                             }
-                            Alert.alert('Success', `"${name}" saved to your collection!`);
+                            // Alert removed in favor of Toast below
+
+                            showToast(`From mind to memory! "${name}" is saved. ✨`);
                         }
                     }
                 }

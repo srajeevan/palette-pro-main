@@ -4,6 +4,7 @@ import { SquintCanvas } from '@/components/SquintCanvas';
 import { SquintControls } from '@/components/SquintControls';
 import { UploadPlaceholderView } from '@/components/UploadPlaceholderView';
 import { usePro } from '@/context/ProContext';
+import { useUpgradeFlow } from '@/hooks/useUpgradeFlow';
 import { useImagePicker } from '@/services/useImagePicker';
 import { useProjectStore } from '@/store/useProjectStore';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
@@ -40,12 +41,23 @@ export default function SquintScreen() {
         pickImage();
     };
 
+    const { triggerUpgradeFlow } = useUpgradeFlow();
+
     const handleBlurChange = (value: number) => {
         const percentage = (value / MAX_BLUR) * 100;
         if (!isPro && percentage > 8) {
-            // Trigger paywall and cap value
-            paywallRef.current?.present();
-            // Cap at 8% (approx 4)
+
+            triggerUpgradeFlow(() => {
+                // Allowed to open Paywall
+                paywallRef.current?.present();
+            }, {
+                onGuestIntent: () => {
+                    // Reset blur if guest decides to upgrade (so it doesn't stay stuck if they cancel)
+                    setBlurIntensity(MAX_BLUR * 0.08);
+                }
+            });
+
+            // Cap locally while waiting
             setBlurIntensity(MAX_BLUR * 0.08);
         } else {
             setBlurIntensity(value);

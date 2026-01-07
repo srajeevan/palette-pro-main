@@ -11,6 +11,7 @@ import { useProjectStore } from '@/store/useProjectStore';
 import { getContrastColor } from '@/utils/colorUtils';
 import { calculateMix, MixResult } from '@/utils/mixingEngine';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { useIsFocused } from '@react-navigation/native';
 import { ImagePlus } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
 import { Dimensions, Platform, Pressable, StyleSheet, View } from 'react-native';
@@ -125,8 +126,10 @@ export default function PickerScreen() {
   };
 
   // Initial Color Pick on Image Load
+  const isFocused = useIsFocused();
+
   React.useEffect(() => {
-    if (imageUri && canvasLayout.width > 0 && canvasLayout.height > 0) {
+    if (isFocused && imageUri && canvasLayout.width > 0 && canvasLayout.height > 0) {
       // Small delay to ensure Skia image is rendered on canvas
       const timer = setTimeout(() => {
         const centerX = canvasLayout.width / 2;
@@ -135,7 +138,7 @@ export default function PickerScreen() {
       }, 500); // 500ms delay to be safe
       return () => clearTimeout(timer);
     }
-  }, [imageUri, canvasLayout]);
+  }, [imageUri, canvasLayout, isFocused]);
 
   return (
     <View style={{ flex: 1, backgroundColor: '#0A0A0B' }}>

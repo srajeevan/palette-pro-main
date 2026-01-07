@@ -3,6 +3,9 @@ import { GuestSyncCard } from '@/components/GuestSyncCard';
 import { SettingsRow } from '@/components/SettingsRow';
 import { useAuth } from '@/context/AuthContext';
 import { usePro } from '@/context/ProContext';
+import { useUpgradeFlow } from '@/hooks/useUpgradeFlow';
+import { showToast } from '@/utils/toast';
+import { useRouter } from 'expo-router';
 import { Crown, HelpCircle, Lock, LogOut, Moon, Zap } from 'lucide-react-native';
 import React from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -16,7 +19,24 @@ interface SettingsModalProps {
 
 export const SettingsModal = ({ visible, onClose, onManageSubscription }: SettingsModalProps) => {
     const { isGuest, signOut } = useAuth();
-    const { isPro, resetProStatus } = usePro();
+    const { isPro, resetProStatus, setPendingUpgrade } = usePro();
+    const router = useRouter();
+
+    const { triggerUpgradeFlow } = useUpgradeFlow();
+
+    const handleUpgradePress = () => {
+        if (isPro) {
+            showToast("You're already VIP! 🌟 No need to upgrade.");
+            return;
+        }
+
+        triggerUpgradeFlow(() => {
+            onClose();
+            onManageSubscription();
+        }, {
+            onGuestIntent: onClose
+        });
+    };
 
     // Mock Toggle States
     const [darkMode, setDarkMode] = React.useState(false);
@@ -42,7 +62,7 @@ export const SettingsModal = ({ visible, onClose, onManageSubscription }: Settin
 
                 {/* Bottom Sheet */}
                 <Animated.View
-                    entering={SlideInUp.springify().damping(15)}
+                    entering={SlideInUp.springify().damping(30).stiffness(300)}
                     style={styles.sheet}
                 >
                     {/* Header */}
@@ -67,7 +87,7 @@ export const SettingsModal = ({ visible, onClose, onManageSubscription }: Settin
                                 icon={<Crown size={20} />}
                                 type={isPro ? "link" : "link"} // Both are links/buttons
                                 value={isPro} // Not really used for link type but good for tracking
-                                onPress={onManageSubscription}
+                                onPress={handleUpgradePress}
                             // Optional: Change color if upgrade needed
                             // We can handle this by passing a custom icon with color above if needed, 
                             // but SettingsRow handles coloring.

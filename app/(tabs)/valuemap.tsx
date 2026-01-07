@@ -1,10 +1,14 @@
 import { AppHeader } from '@/components/AppHeader';
+import { PaywallModal } from '@/components/PaywallModal';
 import { UploadPlaceholderView } from '@/components/UploadPlaceholderView';
 import { ValueControls } from '@/components/ValueControls';
 import { ValueMapCanvas } from '@/components/ValueMapCanvas';
+import { usePro } from '@/context/ProContext';
+import { useUpgradeFlow } from '@/hooks/useUpgradeFlow';
 import { useImagePicker } from '@/services/useImagePicker';
 import { useProjectStore } from '@/store/useProjectStore';
-import React, { useState } from 'react';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import React, { useRef, useState } from 'react';
 import { Dimensions, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -15,6 +19,8 @@ const CANVAS_HEIGHT = SCREEN_HEIGHT * 0.45; // Match Palette Screen
 export default function ValueMapScreen() {
     const { imageUri } = useProjectStore();
     const { pickImage } = useImagePicker();
+    const { isPro } = usePro();
+    const paywallRef = useRef<BottomSheetModal>(null);
 
     // State for grayscale and posterization
     const [grayscaleEnabled, setGrayscaleEnabled] = useState(false);
@@ -25,6 +31,25 @@ export default function ValueMapScreen() {
     const handleUploadPress = () => {
         // Free for all
         pickImage();
+    };
+
+    const { triggerUpgradeFlow } = useUpgradeFlow();
+
+    const handlePosterizeChange = (value: number) => {
+        // Gating: Posterization (changing levels) requires Pro
+        if (!isPro && value > 1) {
+            triggerUpgradeFlow(() => {
+                paywallRef.current?.present();
+            }, {
+                onGuestIntent: () => {
+                    setPosterizeLevels(1); // Reset
+                }
+            });
+
+            setPosterizeLevels(1); // Reset to off immediately
+        } else {
+            setPosterizeLevels(value);
+        }
     };
 
     if (!imageUri) {
@@ -89,13 +114,14 @@ export default function ValueMapScreen() {
                             grayscaleEnabled={grayscaleEnabled}
                             setGrayscaleEnabled={setGrayscaleEnabled}
                             posterizeLevels={posterizeLevels}
-                            setPosterizeLevels={setPosterizeLevels}
+                            setPosterizeLevels={handlePosterizeChange}
                             minLevels={MIN_LEVELS}
                             maxLevels={MAX_LEVELS}
                         />
                     </View>
                 </ScrollView>
             </View>
+            <PaywallModal ref={paywallRef} />
         </SafeAreaView>
     );
 }

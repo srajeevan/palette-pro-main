@@ -130,3 +130,28 @@ export async function updatePaletteName(paletteId: string, name: string): Promis
         return { error: err as Error };
     }
 }
+
+/**
+ * Get the count of palettes for the current user (Efficient)
+ */
+export async function getPaletteCount(): Promise<number> {
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return 0;
+
+        const { count, error } = await supabase
+            .from('palettes')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id);
+
+        if (error) {
+            console.error('Error getting palette count:', error);
+            return 0;
+        }
+
+        return count || 0;
+    } catch (err) {
+        console.error('Unexpected error getting count:', err);
+        return 0;
+    }
+}

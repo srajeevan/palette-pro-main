@@ -1,18 +1,21 @@
 import { AppButton } from '@/components/AppButton';
 import { AppText } from '@/components/AppText';
 import { useAuth } from '@/context/AuthContext';
+import { usePro } from '@/context/ProContext';
 import { supabase } from '@/lib/supabase';
 import { useProjectStore } from '@/store/useProjectStore';
+import { showToast } from '@/utils/toast';
 import { useRouter } from 'expo-router';
 import { Palette } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
     const router = useRouter();
     const { signInAsGuest } = useAuth();
+    const { resetProStatus } = usePro();
     const resetProject = useProjectStore((state) => state.resetProject);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -21,28 +24,37 @@ export default function LoginScreen() {
 
     const handleAuth = async () => {
         if (!email || !password) {
-            Alert.alert('Error', 'Please enter both email and password');
+            showToast('Please enter both email and password');
             return;
         }
 
         setAuthLoading(true);
         try {
             if (isSignUp) {
+                console.log('Attempting Sign Up:', email);
                 const { error } = await supabase.auth.signUp({
                     email,
                     password,
                 });
                 if (error) throw error;
-                Alert.alert('Success', 'Check your email for the confirmation link!');
+                showToast('Check your email for the confirmation link!');
             } else {
-                const { error } = await supabase.auth.signInWithPassword({
+                console.log('Attempting Sign In:', email);
+                const { data, error } = await supabase.auth.signInWithPassword({
                     email,
                     password,
                 });
+                console.log('Sign In Result:', { data, error });
                 if (error) throw error;
+
+                // Force navigation on success
+                // AuthContext listener is async, so we manually push to tabs here 
+                // to avoid waiting for the state update to trigger layout navigation
+                router.replace('/(tabs)');
             }
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            console.error('Auth Error:', error);
+            showToast(error.message || 'Authentication failed');
         } finally {
             setAuthLoading(false);
         }
@@ -64,6 +76,7 @@ export default function LoginScreen() {
                         entering={FadeInDown.springify().damping(12).delay(100)}
                         className="items-center mb-12"
                     >
+                        {/* Standard Branding - Always Visible */}
                         <View className="bg-[#1C1C1E] p-4 rounded-3xl mb-6 border border-[#28282A]">
                             <Palette size={40} color="#fff" strokeWidth={1.5} />
                         </View>
@@ -113,8 +126,7 @@ export default function LoginScreen() {
                                 onPress={handleAuth}
                                 loading={authLoading}
                                 variant="primary"
-                                className="w-full py-4"
-                                style={{ backgroundColor: '#3E63DD' }} // Force Cobalt Blue
+                                className="w-full py-4 bg-[#3E63DD]"
                             />
                         </View>
 

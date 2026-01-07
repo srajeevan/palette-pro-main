@@ -1,5 +1,7 @@
+import { supabase } from '@/lib/supabase';
+import { showToast } from '@/utils/toast';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import Purchases, { CustomerInfo, PurchasesOffering, PurchasesPackage } from 'react-native-purchases';
 
 // RevenueCat Configuration
@@ -10,9 +12,11 @@ interface ProContextType {
     isPro: boolean;
     isLoading: boolean;
     offerings: PurchasesOffering | null;
-    purchasePackage: (pack: PurchasesPackage) => Promise<void>;
+    purchasePackage: (pack: PurchasesPackage) => Promise<boolean>;
     restorePurchases: () => Promise<void>;
     resetProStatus: () => Promise<void>; // Debug only
+    pendingUpgrade: boolean;
+    setPendingUpgrade: (pending: boolean) => void;
 }
 
 const ProContext = createContext<ProContextType | undefined>(undefined);
@@ -21,6 +25,7 @@ export function ProProvider({ children }: { children: React.ReactNode }) {
     const [isPro, setIsPro] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [offerings, setOfferings] = useState<PurchasesOffering | null>(null);
+    const [pendingUpgrade, setPendingUpgrade] = useState(false);
 
     useEffect(() => {
         initRevenueCat();
@@ -35,6 +40,11 @@ export function ProProvider({ children }: { children: React.ReactNode }) {
 
             const info = await Purchases.getCustomerInfo();
             checkEntitlements(info);
+
+            // Listen for real-time updates (syncs with AuthContext login)
+            Purchases.addCustomerInfoUpdateListener((info) => {
+                checkEntitlements(info);
+            });
 
             await loadOfferings();
         } catch (error) {
@@ -55,27 +65,105 @@ export function ProProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const checkEntitlements = (info: CustomerInfo) => {
-        if (typeof info.entitlements.active[ENTITLEMENT_ID] !== 'undefined') {
-            setIsPro(true);
-        } else {
-            setIsPro(false);
+    const syncProStatusToSupabase = async (active: boolean, info: CustomerInfo) => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return; // Not logged in, can't sync
+
+            // 1. Update Profile is_pro
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .update({ is_pro: active })
+                .eq('id', user.id);
+
+            if (profileError) console.error('Supabase profile sync failed:', profileError);
+
+            // 2. Update Subscriptions Table (Best Effort mapping)
+            if (active) {
+                const entitlement = info.entitlements.active[ENTITLEMENT_ID];
+                if (entitlement) {
+                    const { error: subError } = await supabase
+                        .from('subscriptions')
+                        .upsert({
+                            id: `rc_${entitlement.productIdentifier}_${user.id}`, // Synthetic ID
+                            user_id: user.id,
+                            status: 'active',
+                            price_id: entitlement.productIdentifier,
+                            created: entitlement.latestPurchaseDate,
+                            current_period_start: entitlement.latestPurchaseDate,
+                            current_period_end: entitlement.expirationDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Fallback if lifetime
+                            metadata: { source: 'revenue_cat', original_id: entitlement.identifier }
+                        }, { onConflict: 'id' });
+
+                    if (subError) console.error('Supabase subscription sync failed:', subError);
+                }
+            } else {
+                // If not active, we might want to mark status as canceled/expired if we tracked it, 
+                // but for now we just rely on is_pro = false in profile.
+            }
+
+        } catch (err) {
+            console.warn('Sync to Supabase failed:', err);
         }
     };
 
-    const purchasePackage = async (pack: PurchasesPackage) => {
+    const checkEntitlements = (info: CustomerInfo) => {
+        const hasPro = typeof info.entitlements.active[ENTITLEMENT_ID] !== 'undefined';
+        if (hasPro !== isPro) {
+            setIsPro(hasPro);
+        }
+        // Always attempt sync when entitlements are checked/changed, to ensure consistency
+        if (hasPro) {
+            syncProStatusToSupabase(true, info);
+        }
+    };
+
+    const purchasePackage = async (pack: PurchasesPackage): Promise<boolean> => {
         setIsLoading(true);
         try {
             const { customerInfo } = await Purchases.purchasePackage(pack);
             checkEntitlements(customerInfo);
+            const isSuccess = typeof customerInfo.entitlements.active[ENTITLEMENT_ID] !== 'undefined';
+            return isSuccess;
         } catch (error: any) {
-            console.error('Purchase Error:', error);
-            if (!error.userCancelled) {
-                Alert.alert('Error', error.message);
-            } else {
-                // Optional: Alert even on cancel to confirm it was effectively cancelled
+            // Check for cancellation first
+            const isCancelled = error.userCancelled ||
+                error.message?.includes('cancelled') ||
+                error.code === Purchases.PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR ||
+                error.code === '1';
+
+            // Check for "Already Subscribed" (Code 6 typically, or distinct message)
+            const isAlreadySubscribed = error.code === Purchases.PURCHASES_ERROR_CODE.PRODUCT_ALREADY_PURCHASED_ERROR ||
+                error.message?.toLowerCase().includes('already purchased') ||
+                error.message?.toLowerCase().includes('already subscribed');
+
+            if (isCancelled) {
                 console.log('User cancelled transaction');
+                // Engagement Toast/Alert as requested
+                const messages = [
+                    "Your wallet is safe... for now. 😉",
+                    "Playing hard to get? We can wait. 🎨",
+                    "The Pro tools are missing you already.",
+                    "No pressure! We'll be here when you're ready."
+                ];
+                const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+                showToast(randomMsg);
+            } else if (isAlreadySubscribed) {
+                // Explicitly handle "Already Owned" -> Treat as restore
+                console.log("User already subscribed, attempting restore/sync.");
+                try {
+                    const info = await Purchases.restorePurchases();
+                    checkEntitlements(info);
+                    showToast("Access restored. You were already subscribed.");
+                    return typeof info.entitlements.active[ENTITLEMENT_ID] !== 'undefined';
+                } catch (restoreErr) {
+                    showToast('Failed to restore. Please try "Restore Purchases".');
+                }
+            } else {
+                console.error('Purchase Error:', error);
+                showToast(error.message || 'Something went wrong.');
             }
+            return false;
         } finally {
             setIsLoading(false);
         }
@@ -89,12 +177,12 @@ export function ProProvider({ children }: { children: React.ReactNode }) {
 
             // Show result
             if (typeof info.entitlements.active[ENTITLEMENT_ID] !== 'undefined') {
-                Alert.alert('Success', 'Purchases restored.');
+                showToast('Purchases restored successfully.');
             } else {
-                Alert.alert('Restore', 'No active subscriptions found.');
+                showToast('No active subscriptions found to restore.');
             }
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showToast(error.message || 'Restore failed.');
         } finally {
             setIsLoading(false);
         }
@@ -103,16 +191,29 @@ export function ProProvider({ children }: { children: React.ReactNode }) {
     // Debug method to force logout from RevenueCat (Sandbox only usually)
     const resetProStatus = async () => {
         if (__DEV__) {
-            await Purchases.logOut();
+            try {
+                await Purchases.logOut();
+            } catch (e) {
+                console.warn("RevenueCat logOut failed in reset:", e);
+            }
             setIsPro(false);
-            Alert.alert('Debug', 'Logged out of RevenueCat. Pro status reset.');
+            console.log('Logged out of RevenueCat. Pro status reset.');
             // Re-login anonymous to reset
             await Purchases.logIn(Math.random().toString(36).substring(7));
         }
     };
 
     return (
-        <ProContext.Provider value={{ isPro, isLoading, offerings, purchasePackage, restorePurchases, resetProStatus }}>
+        <ProContext.Provider value={{
+            isPro,
+            isLoading,
+            offerings,
+            purchasePackage,
+            restorePurchases,
+            resetProStatus,
+            pendingUpgrade,
+            setPendingUpgrade
+        }}>
             {children}
         </ProContext.Provider>
     );
@@ -125,4 +226,3 @@ export function usePro() {
     }
     return context;
 }
-

@@ -1,7 +1,7 @@
 import { useAuth } from '@/context/AuthContext';
 import { useProjectStore } from '@/store/useProjectStore';
+import { showToast } from '@/utils/toast';
 import * as ImagePicker from 'expo-image-picker';
-import { Alert } from 'react-native';
 import { uploadReferenceImage } from './storageService';
 
 export const useImagePicker = () => {
@@ -11,10 +11,7 @@ export const useImagePicker = () => {
     const verifyPermissions = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert(
-                'Permission Denied',
-                'Sorry, we need camera roll permissions to make this work!'
-            );
+            showToast("This app has no eyes! 👀 Allow camera roll access in settings.");
             return false;
         }
         return true;
@@ -23,10 +20,7 @@ export const useImagePicker = () => {
     const verifyCameraPermissions = async () => {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert(
-                'Permission Denied',
-                'Sorry, we need camera permissions to make this work!'
-            );
+            showToast("Camera access denied. We can't see a thing! 🙈");
             return false;
         }
         return true;
@@ -73,7 +67,7 @@ export const useImagePicker = () => {
             }
         } catch (error) {
             console.log('Error picking image:', error);
-            Alert.alert('Error', 'An error occurred while picking the image.');
+            showToast("That image is playing hard to get. Try another? 📸");
         }
         return null;
     };
@@ -94,7 +88,7 @@ export const useImagePicker = () => {
             }
         } catch (error) {
             console.log('Error taking photo:', error);
-            Alert.alert('Error', 'An error occurred while taking the photo.');
+            showToast("Camera shy? Something went wrong taking the photo. 😬");
         }
         return null;
     };

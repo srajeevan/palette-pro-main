@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import Purchases from 'react-native-purchases';
 
 type AuthContextType = {
     session: Session | null;
@@ -34,15 +35,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setSession(session);
             setUser(session?.user ?? null);
             setLoading(false);
+            if (session?.user) {
+                Purchases.logIn(session.user.id);
+            }
         });
 
         // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             setSession(session);
             setUser(session?.user ?? null);
             setLoading(false);
             if (session) {
                 setIsGuest(false);
+                // Link RevenueCat Identity
+                await Purchases.logIn(session.user.id);
             }
         });
 
@@ -55,6 +61,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const signOut = async () => {
         await supabase.auth.signOut();
+        // Reset RevenueCat Identity
+        try {
+            if (!__DEV__) {
+                await Purchases.logOut();
+            } else {
+                // In DEV, logOut might be annoying if sharing sandbox account, but strictly speaking correct.
+                // We'll keep it consistent.
+                await Purchases.logOut();
+            }
+        } catch (e) {
+            console.warn("RevenueCat logOut failed (likely anonymous):", e);
+        }
+
         setIsGuest(false);
         setSession(null);
         setUser(null);

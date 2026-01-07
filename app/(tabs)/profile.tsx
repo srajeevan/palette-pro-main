@@ -101,7 +101,10 @@ export default function ProfileScreen() {
                         {isGuest ? "Guest Artist" : user?.email?.split('@')[0] || "Artist"}
                     </AppText>
                     <AppText style={{ fontFamily: 'Inter_500Medium', color: '#A1A1AA' }} className="text-base mt-2">
-                        Member since 2024 • {galleryItems.length} Palettes Created
+                        {isGuest
+                            ? `Guest User • ${galleryItems.length} Palettes Created`
+                            : `Member since ${new Date(user?.created_at || Date.now()).getFullYear()} • ${galleryItems.length} Palettes Created`
+                        }
                     </AppText>
                 </View>
                 <Pressable

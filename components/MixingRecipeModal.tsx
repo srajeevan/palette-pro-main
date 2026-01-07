@@ -1,4 +1,5 @@
 import { usePro } from '@/context/ProContext';
+import { useUpgradeFlow } from '@/hooks/useUpgradeFlow';
 import { BlurView } from 'expo-blur';
 import React, { useMemo } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -60,12 +61,18 @@ export const MixingRecipeModal = ({ visible, recipeData, onClose, onUnlock }: Mi
     const ingredients = useMemo(() => parseRecipe(recipeData), [recipeData]);
     const { isPro } = usePro();
 
+    const { triggerUpgradeFlow } = useUpgradeFlow();
+
     const handleUnlockPress = () => {
-        onClose(); // Close the recipe modal first
-        // Small delay to allow fade out? The parent can handle the unlock trigger.
-        setTimeout(() => {
-            onUnlock();
-        }, 300);
+        triggerUpgradeFlow(() => {
+            onClose();
+            // Small delay to allow fade out before triggering external unlock action
+            setTimeout(() => {
+                onUnlock();
+            }, 300);
+        }, {
+            onGuestIntent: onClose
+        });
     };
 
     return (
