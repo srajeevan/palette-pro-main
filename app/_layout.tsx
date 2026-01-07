@@ -101,7 +101,12 @@ function RootLayoutNavContent() {
       router.replace('/login');
     } else if ((session || isGuest) && segments[0] === 'login') {
       // If already logged in, go to tabs
-      router.replace('/(tabs)');
+      // Exception: Allow Guest to access login if they are upgrading
+      if (isGuest && pendingUpgrade) {
+        // Allow access
+      } else {
+        router.replace('/(tabs)');
+      }
     }
   }, [session, loading, isGuest, segments]);
 
@@ -110,9 +115,9 @@ function RootLayoutNavContent() {
       <BottomSheetModalProvider>
         <SafeAreaProvider>
           <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <Stack>
-              <Stack.Screen name="login" options={{ headerShown: false }} />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
+              <Stack.Screen name="login" />
+              <Stack.Screen name="(tabs)" />
               <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
             </Stack>
             {/* Global Paywall for deferred upgrades */}

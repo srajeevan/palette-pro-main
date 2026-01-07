@@ -4,6 +4,7 @@ import { ColorPointer } from '@/components/ColorPointer';
 import { ColorSkiaCanvas, ColorSkiaCanvasRef } from '@/components/ColorSkiaCanvas';
 import { MixingRecipeModal } from '@/components/MixingRecipeModal';
 import { PaywallModal } from '@/components/PaywallModal';
+import { SceneTransition } from '@/components/SceneTransition';
 import { UploadBottomSheet } from '@/components/UploadBottomSheet';
 import { UploadPlaceholderView } from '@/components/UploadPlaceholderView';
 import { useImagePicker } from '@/services/useImagePicker';
@@ -141,156 +142,158 @@ export default function PickerScreen() {
   }, [imageUri, canvasLayout, isFocused]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0A0A0B' }}>
-      {!imageUri && (
-        <Animated.View
-          entering={FadeIn.duration(800)}
-          exiting={FadeOut.duration(800)}
-          style={[StyleSheet.absoluteFill, { zIndex: 1 }]}
-        >
-          <SafeAreaView className="flex-1 bg-[#0A0A0B]">
-            <View className="flex-1 px-6 pt-10">
-              <AppHeader
-                title="Studio"
-                subtitle="Select an image to start."
-              />
-              <UploadPlaceholderView onImageSelected={(uri) => console.log('Image selected:', uri)} />
-              <UploadBottomSheet
-                ref={bottomSheetRef}
-                onPickImage={pickImage}
-                onTakePhoto={takePhoto}
-              />
-            </View>
-          </SafeAreaView>
-        </Animated.View>
-      )}
-
-      {imageUri && (
-        <Animated.View
-          entering={FadeIn.duration(800)}
-          exiting={FadeOut.duration(800)}
-          style={[StyleSheet.absoluteFill, { zIndex: 0 }]}
-        >
-          <SafeAreaView className="flex-1 bg-[#0A0A0B]" edges={['top', 'bottom']}>
-            <View className="flex-1 p-0" style={{ paddingBottom: 110 }}>
-              {/* Standardized Header (Midnight) with exact 24pt spacing */}
-              <AppHeader
-                title="Studio"
-                subtitle="Pick & Mix"
-                className="mb-6" // 24pt margin (mb-6 = 24px)
-              />
-              <View className="absolute top-8 right-6 z-50">
-                <Pressable
-                  onPress={handlePresentUploadModal}
-                  className="w-10 h-10 items-center justify-center rounded-full bg-[#1C1C1E] border border-[#28282A] active:opacity-70"
-                >
-                  <ImagePlus size={20} color="#FFFFFF" />
-                </Pressable>
+    <SceneTransition style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: '#0A0A0B' }}>
+        {!imageUri && (
+          <Animated.View
+            entering={FadeIn.duration(800)}
+            exiting={FadeOut.duration(800)}
+            style={[StyleSheet.absoluteFill, { zIndex: 1 }]}
+          >
+            <SafeAreaView className="flex-1 bg-[#0A0A0B]">
+              <View className="flex-1 px-6 pt-10">
+                <AppHeader
+                  title="Studio"
+                  subtitle="Select an image to start."
+                />
+                <UploadPlaceholderView onImageSelected={(uri) => console.log('Image selected:', uri)} />
+                <UploadBottomSheet
+                  ref={bottomSheetRef}
+                  onPickImage={pickImage}
+                  onTakePhoto={takePhoto}
+                />
               </View>
+            </SafeAreaView>
+          </Animated.View>
+        )}
 
-              {/* Unified Image & Metadata Container */}
-              <View
-                className="flex-1 mx-4 mb-4"
-                style={{
-                  borderRadius: 20,
-                  overflow: 'hidden',
-                  borderWidth: 1,
-                  borderColor: '#28282A', // Outer border for the whole unit
-                  backgroundColor: '#161618',
-                }}
-              >
-                {/* Image Area */}
+        {imageUri && (
+          <Animated.View
+            entering={FadeIn.duration(800)}
+            exiting={FadeOut.duration(800)}
+            style={[StyleSheet.absoluteFill, { zIndex: 0 }]}
+          >
+            <SafeAreaView className="flex-1 bg-[#0A0A0B]" edges={['top', 'bottom']}>
+              <View className="flex-1 p-0" style={{ paddingBottom: 110 }}>
+                {/* Standardized Header (Midnight) with exact 24pt spacing */}
+                <AppHeader
+                  title="Studio"
+                  subtitle="Pick & Mix"
+                  className="mb-6" // 24pt margin (mb-6 = 24px)
+                  rightAction={
+                    <Pressable
+                      onPress={pickImage}
+                      className="w-10 h-10 items-center justify-center rounded-full bg-[#1C1C1E] border border-[#28282A] active:opacity-70"
+                    >
+                      <ImagePlus size={20} color="#FFFFFF" />
+                    </Pressable>
+                  }
+                />
+
+                {/* Unified Image & Metadata Container */}
                 <View
-                  style={{ flex: 1, backgroundColor: '#0A0A0B', overflow: 'hidden' }}
-                  onLayout={(event) => {
-                    const { width, height } = event.nativeEvent.layout;
-                    setCanvasLayout({ width, height });
+                  className="flex-1 mx-4 mb-4"
+                  style={{
+                    borderRadius: 20,
+                    overflow: 'hidden',
+                    borderWidth: 1,
+                    borderColor: '#28282A', // Outer border for the whole unit
+                    backgroundColor: '#161618',
                   }}
                 >
-                  <GestureDetector gesture={composedGesture}>
-                    <Animated.View style={[{ width: '100%', height: '100%' }, canvasAnimatedStyle]}>
-                      <ColorSkiaCanvas
-                        ref={canvasRef}
-                        width={canvasLayout.width}
-                        height={canvasLayout.height}
-                      />
-                    </Animated.View>
-                  </GestureDetector>
+                  {/* Image Area */}
+                  <View
+                    style={{ flex: 1, backgroundColor: '#0A0A0B', overflow: 'hidden' }}
+                    onLayout={(event) => {
+                      const { width, height } = event.nativeEvent.layout;
+                      setCanvasLayout({ width, height });
+                    }}
+                  >
+                    <GestureDetector gesture={composedGesture}>
+                      <Animated.View style={[{ width: '100%', height: '100%' }, canvasAnimatedStyle]}>
+                        <ColorSkiaCanvas
+                          ref={canvasRef}
+                          width={canvasLayout.width}
+                          height={canvasLayout.height}
+                        />
+                      </Animated.View>
+                    </GestureDetector>
 
-                  <ColorPointer
-                    canvasWidth={canvasLayout.width}
-                    canvasHeight={canvasLayout.height}
-                    onColorChange={handleColorChange}
-                    onInteractionStart={() => { isInteracting.value = 1; }}
-                    onInteractionEnd={() => { isInteracting.value = 0; }}
-                  />
+                    <ColorPointer
+                      canvasWidth={canvasLayout.width}
+                      canvasHeight={canvasLayout.height}
+                      onColorChange={handleColorChange}
+                      onInteractionStart={() => { isInteracting.value = 1; }}
+                      onInteractionEnd={() => { isInteracting.value = 0; }}
+                    />
+                  </View>
+
+                  {/* Technical Metadata Footer / Comparison Deck */}
+                  <AnimatedPressable
+                    onPress={handlePresentRecipeModal}
+                    style={[{
+                      height: 64, // Taller (64pt) for easier physical comparison
+                      backgroundColor: pickedColor, // The Footer IS the Swatch
+                      borderTopWidth: 1,
+                      borderTopColor: 'rgba(0,0,0,0.1)',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      paddingHorizontal: 16,
+                    }, footerStyle]}
+                  >
+                    {/* Adaptive Text Color */}
+                    {(() => {
+                      const textColor = getContrastColor(pickedColor);
+                      const separatorColor = textColor === '#FFFFFF' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)';
+                      const labelColor = textColor === '#FFFFFF' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)';
+
+                      return (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <AppText style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 13, color: labelColor }}>HEX </AppText>
+                            <AppText style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 14, fontWeight: '600', color: textColor, letterSpacing: 1 }}>
+                              {pickedColor.toUpperCase()}
+                            </AppText>
+                          </View>
+
+                          <View style={{ width: 1, height: 16, backgroundColor: separatorColor, marginHorizontal: 16 }} />
+
+                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <AppText style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 13, color: labelColor }}>RGB </AppText>
+                            <AppText style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 14, fontWeight: '600', color: textColor, letterSpacing: 1 }}>
+                              {`${pickedRgb.r}, ${pickedRgb.g}, ${pickedRgb.b}`}
+                            </AppText>
+                          </View>
+                        </View>
+                      );
+                    })()}
+                  </AnimatedPressable>
                 </View>
 
-                {/* Technical Metadata Footer / Comparison Deck */}
-                <AnimatedPressable
-                  onPress={handlePresentRecipeModal}
-                  style={[{
-                    height: 64, // Taller (64pt) for easier physical comparison
-                    backgroundColor: pickedColor, // The Footer IS the Swatch
-                    borderTopWidth: 1,
-                    borderTopColor: 'rgba(0,0,0,0.1)',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    paddingHorizontal: 16,
-                  }, footerStyle]}
-                >
-                  {/* Adaptive Text Color */}
-                  {(() => {
-                    const textColor = getContrastColor(pickedColor);
-                    const separatorColor = textColor === '#FFFFFF' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)';
-                    const labelColor = textColor === '#FFFFFF' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)';
+                <UploadBottomSheet
+                  ref={bottomSheetRef}
+                  onPickImage={pickImage}
+                  onTakePhoto={takePhoto}
+                />
 
-                    return (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <AppText style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 13, color: labelColor }}>HEX </AppText>
-                          <AppText style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 14, fontWeight: '600', color: textColor, letterSpacing: 1 }}>
-                            {pickedColor.toUpperCase()}
-                          </AppText>
-                        </View>
-
-                        <View style={{ width: 1, height: 16, backgroundColor: separatorColor, marginHorizontal: 16 }} />
-
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <AppText style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 13, color: labelColor }}>RGB </AppText>
-                          <AppText style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 14, fontWeight: '600', color: textColor, letterSpacing: 1 }}>
-                            {`${pickedRgb.r}, ${pickedRgb.g}, ${pickedRgb.b}`}
-                          </AppText>
-                        </View>
-                      </View>
-                    );
-                  })()}
-                </AnimatedPressable>
+                <MixingRecipeModal
+                  visible={isRecipeModalVisible}
+                  recipeData={currentMix.recipe}
+                  onClose={() => setIsRecipeModalVisible(false)}
+                  onUnlock={() => {
+                    // Open Paywall Modal
+                    // We need a dedicated Paywall modal ref or reuse bottomSheetRef with a different state
+                    // For simplicity, let's create a dedicated Paywall ref in this component or handle it via a new state/ref
+                    paywallRef.current?.present();
+                  }}
+                />
+                <PaywallModal ref={paywallRef} />
               </View>
-
-              <UploadBottomSheet
-                ref={bottomSheetRef}
-                onPickImage={pickImage}
-                onTakePhoto={takePhoto}
-              />
-
-              <MixingRecipeModal
-                visible={isRecipeModalVisible}
-                recipeData={currentMix.recipe}
-                onClose={() => setIsRecipeModalVisible(false)}
-                onUnlock={() => {
-                  // Open Paywall Modal
-                  // We need a dedicated Paywall modal ref or reuse bottomSheetRef with a different state
-                  // For simplicity, let's create a dedicated Paywall ref in this component or handle it via a new state/ref
-                  paywallRef.current?.present();
-                }}
-              />
-              <PaywallModal ref={paywallRef} />
-            </View>
-          </SafeAreaView>
-        </Animated.View>
-      )}
-    </View>
+            </SafeAreaView>
+          </Animated.View>
+        )}
+      </View>
+    </SceneTransition>
   );
 }

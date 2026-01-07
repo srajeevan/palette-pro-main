@@ -17,9 +17,6 @@ export const PaintTubeRow = ({ color, percentage, name, isLocked }: PaintTubeRow
             {/* Details */}
             <View style={styles.details}>
                 <Text style={styles.name}>{name}</Text>
-                <Text style={styles.percentage}>
-                    {isLocked ? '?? %' : `${percentage}%`}
-                </Text>
             </View>
         </View>
     );

@@ -1,5 +1,6 @@
 import { AppHeader } from '@/components/AppHeader';
 import { PaywallModal } from '@/components/PaywallModal';
+import { SceneTransition } from '@/components/SceneTransition';
 import { SquintCanvas } from '@/components/SquintCanvas';
 import { SquintControls } from '@/components/SquintControls';
 import { UploadPlaceholderView } from '@/components/UploadPlaceholderView';
@@ -84,56 +85,58 @@ export default function SquintScreen() {
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-[#0A0A0B]" edges={['top']}>
-            <View className="flex-1">
-                {/* Fixed Header */}
-                <AppHeader
-                    title="Tonal Analysis"
-                    subtitle="SQUINT TOOL"
-                    className="mb-0 z-10 bg-[#0A0A0B]"
-                />
+        <SceneTransition style={{ flex: 1 }}>
+            <SafeAreaView className="flex-1 bg-[#0A0A0B]" edges={['top']}>
+                <View className="flex-1">
+                    {/* Fixed Header */}
+                    <AppHeader
+                        title="Tonal Analysis"
+                        subtitle="SQUINT TOOL"
+                        className="mb-0 z-10 bg-[#0A0A0B]"
+                    />
 
-                {/* No top banner "Unlock Unlimited Access" */}
+                    {/* No top banner "Unlock Unlimited Access" */}
 
-                {/* Main Scrollable Content */}
-                <ScrollView
-                    className="flex-1"
-                    contentContainerStyle={{ paddingBottom: 140 }}
-                    showsVerticalScrollIndicator={false}
-                >
-                    {/* Squint Canvas with Blur */}
-                    <View
-                        style={{
-                            width: CANVAS_WIDTH,
-                            height: CANVAS_HEIGHT,
-                            alignSelf: 'center', // Center the narrower canvas
-                            overflow: 'hidden',
-                            borderRadius: 24, // Uniform radius for Floating Card look
-                            backgroundColor: '#0A0A0B',
-                            borderWidth: 1,
-                            borderColor: 'rgba(255,255,255,0.1)',
-                            marginBottom: 24,
-                            marginTop: 16, // Add top margin to separate from Header
-                        }}
+                    {/* Main Scrollable Content */}
+                    <ScrollView
+                        className="flex-1"
+                        contentContainerStyle={{ paddingBottom: 140 }}
+                        showsVerticalScrollIndicator={false}
                     >
-                        <SquintCanvas
-                            blurIntensity={blurIntensity}
-                            width={CANVAS_WIDTH}
-                            height={CANVAS_HEIGHT}
-                        />
-                    </View>
+                        {/* Squint Canvas with Blur */}
+                        <View
+                            style={{
+                                width: CANVAS_WIDTH,
+                                height: CANVAS_HEIGHT,
+                                alignSelf: 'center', // Center the narrower canvas
+                                overflow: 'hidden',
+                                borderRadius: 24, // Uniform radius for Floating Card look
+                                backgroundColor: '#0A0A0B',
+                                borderWidth: 1,
+                                borderColor: 'rgba(255,255,255,0.1)',
+                                marginBottom: 24,
+                                marginTop: 16, // Add top margin to separate from Header
+                            }}
+                        >
+                            <SquintCanvas
+                                blurIntensity={blurIntensity}
+                                width={CANVAS_WIDTH}
+                                height={CANVAS_HEIGHT}
+                            />
+                        </View>
 
-                    {/* Bottom Controls */}
-                    <View className="px-6">
-                        <SquintControls
-                            blurIntensity={blurIntensity}
-                            setBlurIntensity={handleBlurChange}
-                            maxBlur={MAX_BLUR}
-                        />
-                    </View>
-                </ScrollView>
-            </View>
-            <PaywallModal ref={paywallRef} />
-        </SafeAreaView>
+                        {/* Bottom Controls */}
+                        <View className="px-6">
+                            <SquintControls
+                                blurIntensity={blurIntensity}
+                                setBlurIntensity={handleBlurChange}
+                                maxBlur={MAX_BLUR}
+                            />
+                        </View>
+                    </ScrollView>
+                </View>
+                <PaywallModal ref={paywallRef} />
+            </SafeAreaView>
+        </SceneTransition>
     );
 }

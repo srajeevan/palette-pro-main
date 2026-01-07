@@ -38,23 +38,42 @@ const getPigmentColor = (name: string): string => {
 };
 
 const parseRecipe = (recipe: string): Ingredient[] => {
-    if (!recipe || recipe === 'Touch image to mix...') return [];
+    if (!recipe || recipe === 'Touch image to mix...' || recipe === 'Analyzing...') return [];
 
-    // Example format: "50% Burnt Umber + 30% White"
-    const parts = recipe.split('+');
+    // Example format: "3 parts Titanium White + 1 part Sap Green"
+    const segments = recipe.split('+');
 
-    return parts.map(part => {
-        const trimmed = part.trim();
-        const percentMatch = trimmed.match(/(\d+)%/);
-        const percentage = percentMatch ? parseInt(percentMatch[1], 10) : 0;
-        const name = trimmed.replace(/(\d+)%/, '').trim();
+    // First pass: Parse parts and names
+    const parsedItems = segments.map(segment => {
+        const trimmed = segment.trim();
+        // Match "3 parts Name" or "1 part Name"
+        const partMatch = trimmed.match(/^(\d+)\s+parts?\s+(.+)$/i);
 
+        if (partMatch) {
+            return {
+                parts: parseInt(partMatch[1], 10),
+                name: partMatch[2].trim(),
+                color: getPigmentColor(partMatch[2].trim())
+            };
+        }
+
+        // Fallback for "Name" (assume 1 part if not specified, though engine usually specifies)
         return {
-            name,
-            percentage,
-            color: getPigmentColor(name),
+            parts: 1,
+            name: trimmed,
+            color: getPigmentColor(trimmed)
         };
     });
+
+    // Calculate total for percentage
+    const totalParts = parsedItems.reduce((sum, item) => sum + item.parts, 0);
+
+    // Map to Ingredient interface
+    return parsedItems.map(item => ({
+        name: item.parts > 1 ? `${item.parts} parts ${item.name}` : `1 part ${item.name}`, // Keep full string as name for display
+        percentage: totalParts > 0 ? Math.round((item.parts / totalParts) * 100) : 0,
+        color: item.color
+    }));
 };
 
 export const MixingRecipeModal = ({ visible, recipeData, onClose, onUnlock }: MixingRecipeModalProps) => {

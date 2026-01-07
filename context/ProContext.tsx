@@ -31,6 +31,41 @@ export function ProProvider({ children }: { children: React.ReactNode }) {
         initRevenueCat();
     }, []);
 
+    // Hydrate Pro status from Supabase (Source of Truth for manual/admin grants)
+    useEffect(() => {
+        const fetchProfileStatus = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                console.log('🔄 Checking Supabase profile for Pro status...');
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('is_pro')
+                    .eq('id', user.id)
+                    .single();
+
+                if (data && data.is_pro) {
+                    console.log('✅ User marked as Pro in Supabase. Granting access.');
+                    setIsPro(true);
+                } else if (error) {
+                    console.error('Error fetching profile:', error);
+                }
+            }
+        };
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                fetchProfileStatus();
+            }
+        });
+
+        // Initial check
+        fetchProfileStatus();
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, []);
+
     const initRevenueCat = async () => {
         try {
             if (Platform.OS === 'ios') {

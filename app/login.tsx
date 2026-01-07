@@ -15,16 +15,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function LoginScreen() {
     const router = useRouter();
     const { signInAsGuest } = useAuth();
-    const { resetProStatus } = usePro();
+    const { pendingUpgrade, resetProStatus } = usePro();
     const resetProject = useProjectStore((state) => state.resetProject);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [fullName, setFullName] = useState('');
     const [authLoading, setAuthLoading] = useState(false);
-    const [isSignUp, setIsSignUp] = useState(false);
+    // Auto-switch to Sign Up if coming from "Create Account" flow
+    const [isSignUp, setIsSignUp] = useState(pendingUpgrade);
 
     const handleAuth = async () => {
-        if (!email || !password) {
-            showToast('Please enter both email and password');
+        if (!email || !password || (isSignUp && !fullName)) {
+            showToast('Please fill in all fields');
             return;
         }
 
@@ -35,6 +37,11 @@ export default function LoginScreen() {
                 const { error } = await supabase.auth.signUp({
                     email,
                     password,
+                    options: {
+                        data: {
+                            full_name: fullName,
+                        },
+                    },
                 });
                 if (error) throw error;
                 showToast('Check your email for the confirmation link!');
@@ -93,30 +100,45 @@ export default function LoginScreen() {
                         entering={FadeInDown.springify().damping(12).delay(200)}
                         className="space-y-5"
                     >
+                        {isSignUp && (
+                            <View>
+                                <AppText className="font-medium mb-2 ml-1 text-sm uppercase tracking-wider text-[#A1A1AA]" style={{ color: '#A1A1AA' }}>Name</AppText>
+                                <TextInput
+                                    className="bg-[#1C1C1E] border border-[#28282A] rounded-2xl px-5 h-14 font-sans text-lg text-white"
+                                    placeholder="Your Name"
+                                    placeholderTextColor="#52525B"
+                                    autoCapitalize="words"
+                                    value={fullName}
+                                    onChangeText={setFullName}
+                                    style={{ color: '#FFFFFF', fontSize: 17 }}
+                                />
+                            </View>
+                        )}
+
                         <View>
                             <AppText className="font-medium mb-2 ml-1 text-sm uppercase tracking-wider text-[#A1A1AA]" style={{ color: '#A1A1AA' }}>Email</AppText>
                             <TextInput
-                                className="bg-[#1C1C1E] border border-[#28282A] rounded-2xl px-5 py-4 font-sans text-base text-white"
+                                className="bg-[#1C1C1E] border border-[#28282A] rounded-2xl px-5 h-14 font-sans text-lg text-white"
                                 placeholder="artist@example.com"
                                 placeholderTextColor="#52525B"
                                 autoCapitalize="none"
                                 keyboardType="email-address"
                                 value={email}
                                 onChangeText={setEmail}
-                                style={{ color: '#FFFFFF' }}
+                                style={{ color: '#FFFFFF', fontSize: 17 }}
                             />
                         </View>
 
                         <View>
                             <AppText className="font-medium mb-2 ml-1 text-sm uppercase tracking-wider text-[#A1A1AA]" style={{ color: '#A1A1AA' }}>Password</AppText>
                             <TextInput
-                                className="bg-[#1C1C1E] border border-[#28282A] rounded-2xl px-5 py-4 font-sans text-base text-white"
+                                className="bg-[#1C1C1E] border border-[#28282A] rounded-2xl px-5 h-14 font-sans text-lg text-white"
                                 placeholder="••••••••"
                                 placeholderTextColor="#52525B"
                                 secureTextEntry
                                 value={password}
                                 onChangeText={setPassword}
-                                style={{ color: '#FFFFFF' }}
+                                style={{ color: '#FFFFFF', fontSize: 17 }}
                             />
                         </View>
 
@@ -165,7 +187,7 @@ export default function LoginScreen() {
                             className="w-full border-[#28282A] bg-[#1C1C1E]"
                             textStyle={{ color: '#FFFFFF' }}
                         />
-                        <AppText className="text-xs text-center mt-4 px-4 text-[#52525B]" style={{ color: '#52525B' }}>
+                        <AppText className="text-sm text-center mt-4 px-4 text-[#A1A1AA]" style={{ color: '#A1A1AA' }}>
                             Guest access allows you to try all features but your data won't be synced across devices.
                         </AppText>
                     </Animated.View>

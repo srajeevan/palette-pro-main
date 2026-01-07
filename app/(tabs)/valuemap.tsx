@@ -1,5 +1,6 @@
 import { AppHeader } from '@/components/AppHeader';
 import { PaywallModal } from '@/components/PaywallModal';
+import { SceneTransition } from '@/components/SceneTransition';
 import { UploadPlaceholderView } from '@/components/UploadPlaceholderView';
 import { ValueControls } from '@/components/ValueControls';
 import { ValueMapCanvas } from '@/components/ValueMapCanvas';
@@ -70,58 +71,60 @@ export default function ValueMapScreen() {
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-[#0A0A0B]" edges={['top']}>
-            <View className="flex-1">
-                {/* Fixed Header */}
-                <AppHeader
-                    title="Value Map"
-                    subtitle="TONAL ZONES"
-                    className="mb-0 z-10 bg-[#0A0A0B]"
-                />
+        <SceneTransition style={{ flex: 1 }}>
+            <SafeAreaView className="flex-1 bg-[#0A0A0B]" edges={['top']}>
+                <View className="flex-1">
+                    {/* Fixed Header */}
+                    <AppHeader
+                        title="Value Map"
+                        subtitle="TONAL ZONES"
+                        className="mb-0 z-10 bg-[#0A0A0B]"
+                    />
 
-                {/* Main Scrollable Content */}
-                <ScrollView
-                    className="flex-1"
-                    contentContainerStyle={{ paddingBottom: 140 }}
-                    showsVerticalScrollIndicator={false}
-                >
-                    {/* Value Map Canvas */}
-                    <View
-                        style={{
-                            width: CANVAS_WIDTH,
-                            height: CANVAS_HEIGHT,
-                            alignSelf: 'center', // Center the narrower canvas
-                            overflow: 'hidden',
-                            borderRadius: 24, // Uniform radius for Floating Card look
-                            backgroundColor: '#0A0A0B',
-                            borderWidth: 1,
-                            borderColor: 'rgba(255,255,255,0.1)',
-                            marginBottom: 24,
-                            marginTop: 16, // Add top margin to separate from Header
-                        }}
+                    {/* Main Scrollable Content */}
+                    <ScrollView
+                        className="flex-1"
+                        contentContainerStyle={{ paddingBottom: 140 }}
+                        showsVerticalScrollIndicator={false}
                     >
-                        <ValueMapCanvas
-                            grayscaleEnabled={grayscaleEnabled}
-                            posterizeLevels={posterizeLevels}
-                            width={CANVAS_WIDTH}
-                            height={CANVAS_HEIGHT}
-                        />
-                    </View>
+                        {/* Value Map Canvas */}
+                        <View
+                            style={{
+                                width: CANVAS_WIDTH,
+                                height: CANVAS_HEIGHT,
+                                alignSelf: 'center', // Center the narrower canvas
+                                overflow: 'hidden',
+                                borderRadius: 24, // Uniform radius for Floating Card look
+                                backgroundColor: '#0A0A0B',
+                                borderWidth: 1,
+                                borderColor: 'rgba(255,255,255,0.1)',
+                                marginBottom: 24,
+                                marginTop: 16, // Add top margin to separate from Header
+                            }}
+                        >
+                            <ValueMapCanvas
+                                grayscaleEnabled={grayscaleEnabled}
+                                posterizeLevels={posterizeLevels}
+                                width={CANVAS_WIDTH}
+                                height={CANVAS_HEIGHT}
+                            />
+                        </View>
 
-                    {/* Bottom Controls */}
-                    <View className="px-6">
-                        <ValueControls
-                            grayscaleEnabled={grayscaleEnabled}
-                            setGrayscaleEnabled={setGrayscaleEnabled}
-                            posterizeLevels={posterizeLevels}
-                            setPosterizeLevels={handlePosterizeChange}
-                            minLevels={MIN_LEVELS}
-                            maxLevels={MAX_LEVELS}
-                        />
-                    </View>
-                </ScrollView>
-            </View>
-            <PaywallModal ref={paywallRef} />
-        </SafeAreaView>
+                        {/* Bottom Controls */}
+                        <View className="px-6">
+                            <ValueControls
+                                grayscaleEnabled={grayscaleEnabled}
+                                setGrayscaleEnabled={setGrayscaleEnabled}
+                                posterizeLevels={posterizeLevels}
+                                setPosterizeLevels={handlePosterizeChange}
+                                minLevels={MIN_LEVELS}
+                                maxLevels={MAX_LEVELS}
+                            />
+                        </View>
+                    </ScrollView>
+                </View>
+                <PaywallModal ref={paywallRef} />
+            </SafeAreaView>
+        </SceneTransition>
     );
 }

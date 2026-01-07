@@ -126,53 +126,23 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                         </View>
                     ) : (
                         <>
-                            {/* Compare View (Split) */}
+                            {/* Target Color View (Single) */}
                             <Animated.View
                                 entering={FadeInDown.springify().damping(14).delay(100)}
-                                className="flex-row mb-8"
+                                className="mb-8"
                                 style={{
                                     height: 80,
                                     borderRadius: 16,
                                     overflow: 'hidden',
                                     borderWidth: 1,
-                                    borderColor: 'rgba(255,255,255,0.1)'
+                                    borderColor: 'rgba(255,255,255,0.1)',
+                                    backgroundColor: targetColor || '#000'
                                 }}
-                            >
-                                {/* Target (Left) */}
-                                <View style={{ flex: 1, backgroundColor: targetColor || '#000', justifyContent: 'center', alignItems: 'center' }}>
-                                    {/* Optional text or leave clean */}
-                                </View>
-                                {/* Mixed (Right) */}
-                                <View style={{ flex: 1, backgroundColor: mixResult?.closestColor || '#000', justifyContent: 'center', alignItems: 'center' }}>
-
-                                </View>
-
-                                {/* Floating Badge in Center */}
-                                <View
-                                    style={{
-                                        position: 'absolute',
-                                        alignSelf: 'center',
-                                        left: '50%',
-                                        marginLeft: -30, // Half width
-                                        backgroundColor: '#000',
-                                        paddingHorizontal: 8,
-                                        paddingVertical: 4,
-                                        borderRadius: 12,
-                                        borderWidth: 1,
-                                        borderColor: '#333'
-                                    }}
-                                >
-                                    <AppText style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>
-                                        {mixResult?.distance !== undefined
-                                            ? `${Math.round(Math.max(0, 100 - (mixResult.distance / 2)))}%`
-                                            : '--'}
-                                    </AppText>
-                                </View>
-                            </Animated.View>
+                            />
 
                             {/* Recipe Card */}
                             <Animated.View entering={FadeInDown.springify().damping(14).delay(200)}>
-                                <AppText className="text-stone-400 font-semibold mb-3 tracking-wider text-xs uppercase">Oil Mix Formula</AppText>
+                                <AppText className="font-semibold mb-3 tracking-wider text-xs uppercase" style={{ color: '#A1A1AA' }}>Oil Mix Formula</AppText>
                                 <View
                                     style={{
                                         backgroundColor: '#28282A', // L3

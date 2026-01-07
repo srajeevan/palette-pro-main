@@ -2,6 +2,7 @@ import { AppButton } from '@/components/AppButton';
 import { AppText } from '@/components/AppText';
 import { GalleryCard, GalleryItem } from '@/components/GalleryCard';
 import { GuestSyncCard } from '@/components/GuestSyncCard';
+import { SceneTransition } from '@/components/SceneTransition';
 import { ShareCardGenerator, ShareCardGeneratorRef } from '@/components/ShareCardGenerator';
 import { useAuth } from '@/context/AuthContext';
 import { loadPalettes } from '@/services/paletteService';
@@ -98,7 +99,7 @@ export default function ProfileScreen() {
             <View className="flex-row justify-between items-start mb-6">
                 <View>
                     <AppText style={{ fontFamily: 'PlayfairDisplay_700Bold', color: '#FFFFFF' }} className="text-3xl">
-                        {isGuest ? "Guest Artist" : user?.email?.split('@')[0] || "Artist"}
+                        {isGuest ? "Guest Artist" : user?.user_metadata?.full_name || user?.email?.split('@')[0] || "Artist"}
                     </AppText>
                     <AppText style={{ fontFamily: 'Inter_500Medium', color: '#A1A1AA' }} className="text-base mt-2">
                         {isGuest
@@ -137,7 +138,7 @@ export default function ProfileScreen() {
             <AppText style={{ fontFamily: 'PlayfairDisplay_700Bold', color: '#FFFFFF' }} className="text-2xl text-center mb-2">
                 Your studio is empty.
             </AppText>
-            <AppText style={{ fontFamily: 'Times New Roman', fontStyle: 'italic' }} className="text-[#A1A1AA] text-lg text-center mb-8 px-4">
+            <AppText style={{ fontFamily: 'Times New Roman', fontStyle: 'italic' }} className="text-[#E4E4E7] text-xl text-center mb-8 px-4 tracking-wide">
                 "Your journey begins with a single reference."
             </AppText>
             <View className="w-48">
@@ -151,55 +152,57 @@ export default function ProfileScreen() {
     );
 
     return (
-        <SafeAreaView className="flex-1 bg-[#0A0A0B]" edges={['top']}>
-            <FlatList
-                data={galleryItems}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item, index }) => (
-                    <View style={{ flex: 1, margin: 8 }}>
-                        <GalleryCard item={item} index={index} onPress={() => handleCardPress(item)} />
-                    </View>
-                )}
-                numColumns={2}
-                ListHeaderComponent={renderHeader}
-                ListEmptyComponent={renderEmptyState}
-                contentContainerStyle={{ paddingBottom: 120, flexGrow: 1 }}
-                columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 16 }}
-                showsVerticalScrollIndicator={false}
-            />
-
-            {/* Detail Modal */}
-            <GalleryDetailModal
-                ref={detailModalRef}
-                item={selectedItem}
-                onClose={() => setSelectedItem(null)}
-                onShare={handleShare}
-            />
-
-            {/* Settings Modal */}
-            <SettingsModal
-                visible={showSettings}
-                onClose={() => setShowSettings(false)}
-                onManageSubscription={() => {
-                    setShowSettings(false);
-                    // Small delay to allow modal to close smoothly before opening paywall
-                    setTimeout(() => {
-                        paywallRef.current?.present();
-                    }, 300);
-                }}
-            />
-
-            {/* Hidden Share Generator */}
-            <View style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}>
-                <ShareCardGenerator
-                    ref={shareGeneratorRef}
-                    imageUri={selectedItem?.imageUrl || null}
-                    colors={selectedItem?.colors || []}
+        <SceneTransition style={{ flex: 1 }}>
+            <SafeAreaView className="flex-1 bg-[#0A0A0B]" edges={['top']}>
+                <FlatList
+                    data={galleryItems}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item, index }) => (
+                        <View style={{ flex: 1, margin: 8 }}>
+                            <GalleryCard item={item} index={index} onPress={() => handleCardPress(item)} />
+                        </View>
+                    )}
+                    numColumns={2}
+                    ListHeaderComponent={renderHeader}
+                    ListEmptyComponent={renderEmptyState}
+                    contentContainerStyle={{ paddingBottom: 120, flexGrow: 1 }}
+                    columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 16 }}
+                    showsVerticalScrollIndicator={false}
                 />
-            </View>
 
-            {/* Paywall Modal */}
-            <PaywallModal ref={paywallRef} />
-        </SafeAreaView>
+                {/* Detail Modal */}
+                <GalleryDetailModal
+                    ref={detailModalRef}
+                    item={selectedItem}
+                    onClose={() => setSelectedItem(null)}
+                    onShare={handleShare}
+                />
+
+                {/* Settings Modal */}
+                <SettingsModal
+                    visible={showSettings}
+                    onClose={() => setShowSettings(false)}
+                    onManageSubscription={() => {
+                        setShowSettings(false);
+                        // Small delay to allow modal to close smoothly before opening paywall
+                        setTimeout(() => {
+                            paywallRef.current?.present();
+                        }, 300);
+                    }}
+                />
+
+                {/* Hidden Share Generator */}
+                <View style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}>
+                    <ShareCardGenerator
+                        ref={shareGeneratorRef}
+                        imageUri={selectedItem?.imageUrl || null}
+                        colors={selectedItem?.colors || []}
+                    />
+                </View>
+
+                {/* Paywall Modal */}
+                <PaywallModal ref={paywallRef} />
+            </SafeAreaView>
+        </SceneTransition>
     );
 }

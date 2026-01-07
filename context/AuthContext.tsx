@@ -63,15 +63,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         await supabase.auth.signOut();
         // Reset RevenueCat Identity
         try {
-            if (!__DEV__) {
+            const isAnonymous = await Purchases.isAnonymous();
+            if (!isAnonymous) {
                 await Purchases.logOut();
             } else {
-                // In DEV, logOut might be annoying if sharing sandbox account, but strictly speaking correct.
-                // We'll keep it consistent.
-                await Purchases.logOut();
+                console.log("RevenueCat user is anonymous, skipping logOut.");
             }
         } catch (e) {
-            console.warn("RevenueCat logOut failed (likely anonymous):", e);
+            console.warn("RevenueCat logOut failed:", e);
         }
 
         setIsGuest(false);

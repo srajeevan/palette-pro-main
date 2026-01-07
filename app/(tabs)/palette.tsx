@@ -4,6 +4,7 @@ import { ColorSkiaCanvas, ColorSkiaCanvasRef } from '@/components/ColorSkiaCanva
 import { MixingRecipeBottomSheet } from '@/components/MixingRecipeBottomSheet';
 import { PaletteSwatch } from '@/components/PaletteSwatch';
 import { PaywallModal } from '@/components/PaywallModal';
+import { SceneTransition } from '@/components/SceneTransition';
 import { UploadPlaceholderView } from '@/components/UploadPlaceholderView';
 import { useAuth } from '@/context/AuthContext';
 import { usePro } from '@/context/ProContext';
@@ -270,173 +271,175 @@ export default function PaletteScreen() {
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-[#0A0A0B]" edges={['top']}>
-            <View className="flex-1">
-                {/* Fixed Header */}
-                <AppHeader
-                    title="Palette"
-                    subtitle="ANALYZE"
-                    className="mb-0 z-10 bg-[#0A0A0B]" // Ensure background covers scrolling content if needed, or let content slide under. Actually standard is header on top.
-                />
+        <SceneTransition style={{ flex: 1 }}>
+            <SafeAreaView className="flex-1 bg-[#0A0A0B]" edges={['top']}>
+                <View className="flex-1">
+                    {/* Fixed Header */}
+                    <AppHeader
+                        title="Palette"
+                        subtitle="ANALYZE"
+                        className="mb-0 z-10 bg-[#0A0A0B]" // Ensure background covers scrolling content if needed, or let content slide under. Actually standard is header on top.
+                    />
 
-                {/* Floating Actions (Fixed relative to screen, not scroll) */}
-                <View className="absolute top-8 right-6 flex-row items-center space-x-3 z-50">
-                    {generatedPalette.length > 0 && (
+                    {/* Floating Actions (Fixed relative to screen, not scroll) */}
+                    <View className="absolute top-8 right-6 flex-row items-center space-x-3 z-50">
+                        {generatedPalette.length > 0 && (
+                            <TouchableOpacity
+                                onPress={handleSavePalette}
+                                disabled={isSaving}
+                                className={`w-10 h-10 items-center justify-center rounded-full border border-[#28282A] ${isSaving ? 'bg-[#1C1C1E]' : 'bg-[#3E63DD]'}`}
+                            >
+                                {isSaving ? (
+                                    <ActivityIndicator size="small" color="#FFF" />
+                                ) : (
+                                    <Save size={18} color="white" />
+                                )}
+                            </TouchableOpacity>
+                        )}
                         <TouchableOpacity
-                            onPress={handleSavePalette}
-                            disabled={isSaving}
-                            className={`w-10 h-10 items-center justify-center rounded-full border border-[#28282A] ${isSaving ? 'bg-[#1C1C1E]' : 'bg-[#3E63DD]'}`}
+                            onPress={() => handleGenerate()}
+                            disabled={isGenerating}
+                            className="w-10 h-10 items-center justify-center rounded-full bg-[#1C1C1E] border border-[#28282A]"
                         >
-                            {isSaving ? (
-                                <ActivityIndicator size="small" color="#FFF" />
-                            ) : (
-                                <Save size={18} color="white" />
-                            )}
+                            {isGenerating ? <ActivityIndicator size="small" color="#FFF" /> : <RefreshCw size={18} color="white" />}
                         </TouchableOpacity>
-                    )}
-                    <TouchableOpacity
-                        onPress={() => handleGenerate()}
-                        disabled={isGenerating}
-                        className="w-10 h-10 items-center justify-center rounded-full bg-[#1C1C1E] border border-[#28282A]"
-                    >
-                        {isGenerating ? <ActivityIndicator size="small" color="#FFF" /> : <RefreshCw size={18} color="white" />}
-                    </TouchableOpacity>
-                </View>
-
-                {/* Main Scrollable Content */}
-                <ScrollView
-                    className="flex-1"
-                    contentContainerStyle={{ paddingBottom: 140 }} // Extra padding for dock
-                    showsVerticalScrollIndicator={false}
-                >
-                    {/* Image Canvas Container */}
-                    <View
-                        style={{
-                            width: CANVAS_WIDTH,
-                            height: CANVAS_HEIGHT,
-                            alignSelf: 'center', // Center the narrower canvas
-                            overflow: 'hidden',
-                            borderRadius: 24, // Uniform radius for Floating Card look
-                            backgroundColor: '#1C1C1E', // Match dark theme card background
-                            marginBottom: 24,
-                            marginTop: 16, // Add top margin to separate from Header
-                            borderWidth: 1,
-                            borderColor: 'rgba(255,255,255,0.1)',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                        }}
-                    >
-                        <GestureDetector gesture={composedGesture}>
-                            <Animated.View style={[{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }, canvasAnimatedStyle]}>
-                                <ColorSkiaCanvas
-                                    ref={canvasRef}
-                                    width={CANVAS_WIDTH}
-                                    height={CANVAS_HEIGHT}
-                                    onImageLoaded={handleCanvasImageLoaded}
-                                />
-                            </Animated.View>
-                        </GestureDetector>
-
-                        {/* Loading Overlay (if image is loading) - relies on store state or local state derived if needed */}
-                        {/* Since we don't track detailed image loading steps here easily without extra state, 
-                             setting the background to #1C1C1E prevents the harsh white flash. 
-                             The Canvas component also handles empty state.
-                          */}
                     </View>
 
-                    {/* Palette Controls & Grid */}
-                    <View className="px-6">
-                        {/* Controls */}
-                        <View className="mb-6">
-                            {/* Segmented Control Container (Dark Recessed) */}
-                            <View
-                                style={{
-                                    flexDirection: 'row',
-                                    backgroundColor: '#161618', // Surface L1
-                                    borderRadius: 16,
-                                    padding: 4,
-                                    height: 56,
-                                    borderWidth: 1,
-                                    borderColor: '#28282A',
-                                }}
-                            >
-                                {/* Active Indicator */}
-                                <Animated.View
-                                    style={[
-                                        {
-                                            position: 'absolute',
-                                            top: 4,
-                                            bottom: 4,
-                                            left: 4,
-                                            width: (SCREEN_WIDTH - 48 - 8) / 4,
-                                            backgroundColor: '#28282A', // Recessed Active State
-                                            borderRadius: 12,
-                                            borderWidth: 1,
-                                            borderColor: 'rgba(255,255,255,0.05)',
-                                        },
-                                        indicatorAnimatedStyle
-                                    ]}
-                                />
+                    {/* Main Scrollable Content */}
+                    <ScrollView
+                        className="flex-1"
+                        contentContainerStyle={{ paddingBottom: 140 }} // Extra padding for dock
+                        showsVerticalScrollIndicator={false}
+                    >
+                        {/* Image Canvas Container */}
+                        <View
+                            style={{
+                                width: CANVAS_WIDTH,
+                                height: CANVAS_HEIGHT,
+                                alignSelf: 'center', // Center the narrower canvas
+                                overflow: 'hidden',
+                                borderRadius: 24, // Uniform radius for Floating Card look
+                                backgroundColor: '#1C1C1E', // Match dark theme card background
+                                marginBottom: 24,
+                                marginTop: 16, // Add top margin to separate from Header
+                                borderWidth: 1,
+                                borderColor: 'rgba(255,255,255,0.1)',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                            }}
+                        >
+                            <GestureDetector gesture={composedGesture}>
+                                <Animated.View style={[{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }, canvasAnimatedStyle]}>
+                                    <ColorSkiaCanvas
+                                        ref={canvasRef}
+                                        width={CANVAS_WIDTH}
+                                        height={CANVAS_HEIGHT}
+                                        onImageLoaded={handleCanvasImageLoaded}
+                                    />
+                                </Animated.View>
+                            </GestureDetector>
 
-                                {[4, 6, 8, 12].map((num) => (
-                                    <TouchableOpacity
-                                        key={num}
-                                        onPress={() => handlePresetPress(num)}
-                                        style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
-                                    >
-                                        <AppText
-                                            style={{
-                                                fontFamily: 'Inter_700Bold', // Always Bold for tech feel
-                                                color: colorCount === num ? '#FFFFFF' : '#525255',
-                                                fontSize: 16
-                                            }}
+                            {/* Loading Overlay (if image is loading) - relies on store state or local state derived if needed */}
+                            {/* Since we don't track detailed image loading steps here easily without extra state, 
+                                 setting the background to #1C1C1E prevents the harsh white flash. 
+                                 The Canvas component also handles empty state.
+                              */}
+                        </View>
+
+                        {/* Palette Controls & Grid */}
+                        <View className="px-6">
+                            {/* Controls */}
+                            <View className="mb-6">
+                                {/* Segmented Control Container (Dark Recessed) */}
+                                <View
+                                    style={{
+                                        flexDirection: 'row',
+                                        backgroundColor: '#161618', // Surface L1
+                                        borderRadius: 16,
+                                        padding: 4,
+                                        height: 56,
+                                        borderWidth: 1,
+                                        borderColor: '#28282A',
+                                    }}
+                                >
+                                    {/* Active Indicator */}
+                                    <Animated.View
+                                        style={[
+                                            {
+                                                position: 'absolute',
+                                                top: 4,
+                                                bottom: 4,
+                                                left: 4,
+                                                width: (SCREEN_WIDTH - 48 - 8) / 4,
+                                                backgroundColor: '#28282A', // Recessed Active State
+                                                borderRadius: 12,
+                                                borderWidth: 1,
+                                                borderColor: 'rgba(255,255,255,0.05)',
+                                            },
+                                            indicatorAnimatedStyle
+                                        ]}
+                                    />
+
+                                    {[4, 6, 8, 12].map((num) => (
+                                        <TouchableOpacity
+                                            key={num}
+                                            onPress={() => handlePresetPress(num)}
+                                            style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
                                         >
-                                            {num}
-                                        </AppText>
-                                    </TouchableOpacity>
-                                ))}
+                                            <AppText
+                                                style={{
+                                                    fontFamily: 'Inter_700Bold', // Always Bold for tech feel
+                                                    color: colorCount === num ? '#FFFFFF' : '#525255',
+                                                    fontSize: 16
+                                                }}
+                                            >
+                                                {num}
+                                            </AppText>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </View>
+
+                            {/* Grid of Swatches */}
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
+                                {generatedPalette.length === 0 ? (
+                                    <View className="items-center justify-center py-10 w-full">
+                                        <AppText className="text-stone-500 text-center">Tap the refresh button above{'\n'}to generate a palette.</AppText>
+                                    </View>
+                                ) : (
+                                    generatedPalette.map((color, index) => (
+                                        <Animated.View
+                                            key={`${color}-${index}`}
+                                            entering={FadeInDown.springify().damping(12).delay(index * 50)}
+                                        >
+                                            <PaletteSwatch
+                                                color={color}
+                                                index={index}
+                                                onPress={handleSwatchPress}
+                                            />
+                                        </Animated.View>
+                                    ))
+                                )}
                             </View>
                         </View>
+                    </ScrollView>
+                </View>
 
-                        {/* Grid of Swatches */}
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
-                            {generatedPalette.length === 0 ? (
-                                <View className="items-center justify-center py-10 w-full">
-                                    <AppText className="text-stone-500 text-center">Tap the refresh button above{'\n'}to generate a palette.</AppText>
-                                </View>
-                            ) : (
-                                generatedPalette.map((color, index) => (
-                                    <Animated.View
-                                        key={`${color}-${index}`}
-                                        entering={FadeInDown.springify().damping(12).delay(index * 50)}
-                                    >
-                                        <PaletteSwatch
-                                            color={color}
-                                            index={index}
-                                            onPress={handleSwatchPress}
-                                        />
-                                    </Animated.View>
-                                ))
-                            )}
-                        </View>
-                    </View>
-                </ScrollView>
-            </View>
+                {/* Mixing Recipe Bottom Sheet */}
+                <MixingRecipeBottomSheet
+                    ref={mixingRecipeBottomSheetRef}
+                    targetColor={selectedColor}
+                    onUnlock={() => {
+                        mixingRecipeBottomSheetRef.current?.dismiss();
+                        // Small delay
+                        setTimeout(() => {
+                            paywallRef.current?.present();
+                        }, 300);
+                    }}
+                />
 
-            {/* Mixing Recipe Bottom Sheet */}
-            <MixingRecipeBottomSheet
-                ref={mixingRecipeBottomSheetRef}
-                targetColor={selectedColor}
-                onUnlock={() => {
-                    mixingRecipeBottomSheetRef.current?.dismiss();
-                    // Small delay
-                    setTimeout(() => {
-                        paywallRef.current?.present();
-                    }, 300);
-                }}
-            />
-
-            <PaywallModal ref={paywallRef} />
-        </SafeAreaView>
+                <PaywallModal ref={paywallRef} />
+            </SafeAreaView>
+        </SceneTransition>
     );
 }
