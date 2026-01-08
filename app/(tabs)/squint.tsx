@@ -111,7 +111,7 @@ export default function SquintScreen() {
                                 alignSelf: 'center', // Center the narrower canvas
                                 overflow: 'hidden',
                                 borderRadius: 24, // Uniform radius for Floating Card look
-                                backgroundColor: '#0A0A0B',
+                                backgroundColor: '#1C1C1E',
                                 borderWidth: 1,
                                 borderColor: 'rgba(255,255,255,0.1)',
                                 marginBottom: 24,

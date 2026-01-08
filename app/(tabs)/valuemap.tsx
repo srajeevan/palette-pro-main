@@ -24,10 +24,9 @@ export default function ValueMapScreen() {
     const paywallRef = useRef<BottomSheetModal>(null);
 
     // State for grayscale and posterization
+    // State for grayscale and temperature
     const [grayscaleEnabled, setGrayscaleEnabled] = useState(false);
-    const [posterizeLevels, setPosterizeLevels] = useState(1);
-    const MIN_LEVELS = 1; // No posterization
-    const MAX_LEVELS = 12; // Maximum posterization levels
+    const [temperatureEnabled, setTemperatureEnabled] = useState(false);
 
     const handleUploadPress = () => {
         // Free for all
@@ -36,20 +35,20 @@ export default function ValueMapScreen() {
 
     const { triggerUpgradeFlow } = useUpgradeFlow();
 
-    const handlePosterizeChange = (value: number) => {
-        // Gating: Posterization (changing levels) requires Pro
-        if (!isPro && value > 1) {
+    const handleTemperatureToggle = (value: boolean) => {
+        // Gating: Temperature Map requires Pro
+        if (!isPro && value) {
             triggerUpgradeFlow(() => {
                 paywallRef.current?.present();
             }, {
                 onGuestIntent: () => {
-                    setPosterizeLevels(1); // Reset
+                    setTemperatureEnabled(false); // Reset
                 }
             });
 
-            setPosterizeLevels(1); // Reset to off immediately
+            setTemperatureEnabled(false); // Reset to off immediately
         } else {
-            setPosterizeLevels(value);
+            setTemperatureEnabled(value);
         }
     };
 
@@ -95,7 +94,7 @@ export default function ValueMapScreen() {
                                 alignSelf: 'center', // Center the narrower canvas
                                 overflow: 'hidden',
                                 borderRadius: 24, // Uniform radius for Floating Card look
-                                backgroundColor: '#0A0A0B',
+                                backgroundColor: '#1C1C1E',
                                 borderWidth: 1,
                                 borderColor: 'rgba(255,255,255,0.1)',
                                 marginBottom: 24,
@@ -104,7 +103,7 @@ export default function ValueMapScreen() {
                         >
                             <ValueMapCanvas
                                 grayscaleEnabled={grayscaleEnabled}
-                                posterizeLevels={posterizeLevels}
+                                temperatureEnabled={temperatureEnabled}
                                 width={CANVAS_WIDTH}
                                 height={CANVAS_HEIGHT}
                             />
@@ -115,10 +114,8 @@ export default function ValueMapScreen() {
                             <ValueControls
                                 grayscaleEnabled={grayscaleEnabled}
                                 setGrayscaleEnabled={setGrayscaleEnabled}
-                                posterizeLevels={posterizeLevels}
-                                setPosterizeLevels={handlePosterizeChange}
-                                minLevels={MIN_LEVELS}
-                                maxLevels={MAX_LEVELS}
+                                temperatureEnabled={temperatureEnabled}
+                                setTemperatureEnabled={handleTemperatureToggle}
                             />
                         </View>
                     </ScrollView>

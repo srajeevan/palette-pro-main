@@ -197,7 +197,7 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                             {/* Match Quality */}
                             <Animated.View entering={FadeInDown.springify().damping(14).delay(300)} className="mb-8">
                                 <View className="flex-row justify-between items-end mb-2">
-                                    <AppText className="text-stone-500 font-semibold text-xs">ACCURACY</AppText>
+                                    <AppText style={{ fontFamily: 'Inter_600SemiBold', fontSize: 12, color: '#A1A1AA', letterSpacing: 0.5 }}>ACCURACY</AppText>
                                     <AppText style={{ fontFamily: 'Inter_700Bold', fontSize: 18, color: '#3E63DD' }}>
                                         {mixResult?.distance !== undefined
                                             ? `${Math.round(Math.max(0, 100 - (mixResult.distance / 2)))}%`

@@ -1,3 +1,4 @@
+
 import { useProjectStore } from '@/store/useProjectStore';
 import { Canvas, ColorMatrix, Group, Image, Paint, useImage } from '@shopify/react-native-skia';
 import React, { forwardRef, useMemo } from 'react';
@@ -10,76 +11,58 @@ const DEFAULT_HEIGHT = SCREEN_HEIGHT * 0.5;
 
 interface ValueMapCanvasProps {
     grayscaleEnabled: boolean;
-    posterizeLevels: number;
+    temperatureEnabled: boolean;
     width?: number;
     height?: number;
 }
 
 export const ValueMapCanvas = forwardRef<any, ValueMapCanvasProps>(
-    ({ grayscaleEnabled, posterizeLevels, width, height }, ref) => {
+    ({ grayscaleEnabled, temperatureEnabled, width, height }, ref) => {
         const { imageUri } = useProjectStore();
         const skiaImage = useImage(imageUri || '');
 
         const C_W = width || DEFAULT_WIDTH;
         const C_H = height || DEFAULT_HEIGHT;
 
-        // Grayscale color matrix
+        // Grayscale Matrix
         const grayscaleMatrix = useMemo(() => {
             if (!grayscaleEnabled) return null;
             return [
-                0.2126, 0.7152, 0.0722, 0, 0, // Red channel
-                0.2126, 0.7152, 0.0722, 0, 0, // Green channel
-                0.2126, 0.7152, 0.0722, 0, 0, // Blue channel
-                0, 0, 0, 1, 0, // Alpha channel
+                0.2126, 0.7152, 0.0722, 0, 0,
+                0.2126, 0.7152, 0.0722, 0, 0,
+                0.2126, 0.7152, 0.0722, 0, 0,
+                0, 0, 0, 1, 0,
             ];
         }, [grayscaleEnabled]);
 
-        // Posterization effect using contrast and brightness adjustments
-        // This creates a tonal reduction effect
-        const posterizeEffect = useMemo(() => {
-            if (posterizeLevels <= 1) return 1;
-            return posterizeLevels;
-        }, [posterizeLevels]);
+        // Temperature Map Matrix (Fallback to ColorMatrix)
+        // Since Shaders are unstable on this device, we use a Channel Difference Matrix.
+        // Concept: 
+        // Red Channel = Red - Blue (Shows Warmth)
+        // Blue Channel = Blue - Red (Shows Coolness)
+        // Green Channel = Dampened for contrast
+        const temperatureMatrix = useMemo(() => {
+            if (!temperatureEnabled) return null;
+            return [
+                2.0, 0, -1.0, 0, 0,  // R' = 2R - B (Boost Warmth)
+                0, 0.5, 0, 0, 0,     // G' = 0.5G (Keep some luminance)
+                -1.0, 0, 2.0, 0, 0,  // B' = 2B - R (Boost Coolness)
+                0, 0, 0, 1, 0        // A' = A
+            ];
+        }, [temperatureEnabled]);
 
-        // Create posterization matrix BEFORE early return to maintain hooks order
-        // Approximates posterization by amplifying contrast
-        const combinedMatrix = useMemo(() => {
-            if (!grayscaleMatrix && posterizeEffect === 1) {
-                return null;
-            }
+        // Calculate layout for render (fit image within canvas)
+        let imgW = 0, imgH = 0, scale = 1, displayW = 0, displayH = 0, x = 0, y = 0;
 
-            if (grayscaleMatrix && posterizeEffect > 1) {
-                // Combine grayscale with contrast boost for posterization effect
-                const contrast = 1 + (posterizeEffect / 12) * 1.5; // Reduced multiplier from 2 to 1.5
-                const translate = (1 - contrast) / 2 * 255;
-
-                return [
-                    0.2126 * contrast, 0.7152 * contrast, 0.0722 * contrast, 0, translate,
-                    0.2126 * contrast, 0.7152 * contrast, 0.0722 * contrast, 0, translate,
-                    0.2126 * contrast, 0.7152 * contrast, 0.0722 * contrast, 0, translate,
-                    0, 0, 0, 1, 0,
-                ];
-            }
-
-            if (grayscaleMatrix) {
-                return grayscaleMatrix;
-            }
-
-            if (posterizeEffect > 1) {
-                // Just posterization (contrast boost)
-                const contrast = 1 + (posterizeEffect / 12) * 1.5; // Reduced multiplier
-                const translate = (1 - contrast) / 2 * 255;
-
-                return [
-                    contrast, 0, 0, 0, translate,
-                    0, contrast, 0, 0, translate,
-                    0, 0, contrast, 0, translate,
-                    0, 0, 0, 1, 0,
-                ];
-            }
-
-            return null;
-        }, [grayscaleMatrix, posterizeEffect]);
+        if (skiaImage) {
+            imgW = skiaImage.width();
+            imgH = skiaImage.height();
+            scale = Math.min(C_W / imgW, C_H / imgH);
+            displayW = imgW * scale;
+            displayH = imgH * scale;
+            x = (C_W - displayW) / 2;
+            y = (C_H - displayH) / 2;
+        }
 
         if (!imageUri || !skiaImage) {
             return (
@@ -87,7 +70,7 @@ export const ValueMapCanvas = forwardRef<any, ValueMapCanvasProps>(
                     style={{
                         width: C_W,
                         height: C_H,
-                        backgroundColor: '#fafaf9',
+                        backgroundColor: '#1C1C1E',
                         borderRadius: 12,
                         justifyContent: 'center',
                         alignItems: 'center'
@@ -96,53 +79,64 @@ export const ValueMapCanvas = forwardRef<any, ValueMapCanvasProps>(
             );
         }
 
-        // Calculate layout for render (fit image within canvas)
-        const imgW = skiaImage.width();
-        const imgH = skiaImage.height();
-        const scale = Math.min(C_W / imgW, C_H / imgH);
-        const displayW = imgW * scale;
-        const displayH = imgH * scale;
-        const x = (C_W - displayW) / 2;
-        const y = (C_H - displayH) / 2;
-
         return (
             <View
                 style={{
                     width: C_W,
                     height: C_H,
-                    backgroundColor: '#f5f5f4',
+                    backgroundColor: '#1C1C1E', // Dark background
                     borderRadius: 12,
                     overflow: 'hidden'
                 }}
             >
                 <Canvas style={{ width: C_W, height: C_H }}>
-                    {combinedMatrix ? (
-                        <Group
-                            layer={
+                    {/* Position the drawing group */}
+                    <Group
+                        transform={[
+                            { translateX: x },
+                            { translateY: y },
+                            { scale: scale }
+                        ]}
+                    >
+                        {/* 
+                            Layering:
+                            We apply composed filters via nested Groups/Paints or sequenced logic.
+                            Since we have two matrices (Grayscale and Temperature), we can't easily chain them
+                            in a single ColorMatrix prop (unless we multiply them).
+                            Nesting Groups is the safest declarative way.
+                        */}
+
+                        {/* Layer 1: Grayscale (Inner) */}
+                        <Group layer={
+                            <Paint>
+                                {grayscaleMatrix && <ColorMatrix matrix={grayscaleMatrix} />}
+                            </Paint>
+                        }>
+                            {/* Layer 2: Temperature (Outer) */}
+                            {/* Note: Temperature usually wants color info, so maybe it should apply first? 
+                                Actually, if we grayscale first, R=G=B, so R-B = 0.
+                                Temperature Map needs COLOR data. 
+                                So Temperature must apply FIRST (Inner), or be mutually exclusive?
+                                The UI allows both. If both ON, grayscale of a heatmap?
+                                Let's nest Temperature INSIDE Grayscale.
+                            */}
+
+                            <Group layer={
                                 <Paint>
-                                    <ColorMatrix matrix={combinedMatrix} />
+                                    {temperatureMatrix && <ColorMatrix matrix={temperatureMatrix} />}
                                 </Paint>
-                            }
-                        >
-                            <Image
-                                image={skiaImage}
-                                x={x}
-                                y={y}
-                                width={displayW}
-                                height={displayH}
-                                fit="contain"
-                            />
+                            }>
+                                <Image
+                                    image={skiaImage}
+                                    x={0}
+                                    y={0}
+                                    width={imgW}
+                                    height={imgH}
+                                    fit="none"
+                                />
+                            </Group>
                         </Group>
-                    ) : (
-                        <Image
-                            image={skiaImage}
-                            x={x}
-                            y={y}
-                            width={displayW}
-                            height={displayH}
-                            fit="contain"
-                        />
-                    )}
+                    </Group>
                 </Canvas>
             </View>
         );

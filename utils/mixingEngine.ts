@@ -25,8 +25,11 @@ export const calculateMix = (targetRgb: { r: number; g: number; b: number }, pal
     let bestMix: MixResult = {
         closestColor: '#000000',
         recipe: 'Analyzing...',
-        distance: Infinity
+        distance: Infinity, // This will store the pure Color Distance
+        // We track 'score' internally for sorting but don't need to export it
     };
+
+    let bestScore = Infinity;
 
     // Helper to update best mix if better
     const checkMix = (rgb: { r: number, g: number, b: number }, recipe: string) => {
@@ -34,13 +37,14 @@ export const calculateMix = (targetRgb: { r: number; g: number; b: number }, pal
         // We prefer simpler recipes if distances are very close (within 5 units)
         // This acts as a tie-breaker for Occam's Razor
         const complexityPenalty = recipe.split('+').length; // Slight penalty for more paints
-        const adjustedDistance = d + (complexityPenalty * 0.5);
+        const score = d + (complexityPenalty * 0.5);
 
-        if (adjustedDistance < bestMix.distance) {
+        if (score < bestScore) {
+            bestScore = score;
             bestMix = {
                 closestColor: rgbToHex(rgb),
                 recipe,
-                distance: adjustedDistance
+                distance: d // Store Pure Distance for UI Accuracy
             };
         }
     };

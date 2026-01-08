@@ -28,7 +28,7 @@ export const SquintCanvas = forwardRef<any, SquintCanvasProps>(({ blurIntensity,
                 style={{
                     width: C_W,
                     height: C_H,
-                    backgroundColor: '#fafaf9',
+                    backgroundColor: '#1C1C1E',
                     borderRadius: 12,
                     justifyContent: 'center',
                     alignItems: 'center'
@@ -51,7 +51,7 @@ export const SquintCanvas = forwardRef<any, SquintCanvasProps>(({ blurIntensity,
             style={{
                 width: C_W,
                 height: C_H,
-                backgroundColor: '#f5f5f4',
+                backgroundColor: '#1C1C1E',
                 borderRadius: 12,
                 overflow: 'hidden'
             }}

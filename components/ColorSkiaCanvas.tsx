@@ -74,14 +74,16 @@ export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef, ColorSkiaCanvasPro
                     return null;
                 }
 
-                const pixels = snapshot.readPixels(physicalX, physicalY, {
+                const pixels = new Uint8Array(4); // RGBA
+                const success = snapshot.readPixels(physicalX, physicalY, {
                     width: 1,
                     height: 1,
-                    colorType: 4, // 4 = generic 8888 (usually rgba or bgra depending on platform)
-                    alphaType: 1, // 1 = premul
-                });
+                    colorType: 4,
+                    alphaType: 1,
+                }, pixels); // Pass buffer as 4th argument
 
-                if (pixels && pixels.length >= 3) {
+                // If returns boolean/void, check buffer
+                if (pixels[3] !== 0 || pixels[0] !== 0) { // Check if alpha or r is set (approximation)
                     return { r: pixels[0], g: pixels[1], b: pixels[2] };
                 }
             }
