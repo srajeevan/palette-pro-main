@@ -1,5 +1,5 @@
+import { safeHaptics } from '@/utils/haptics';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import * as Haptics from 'expo-haptics';
 import { Eye, Layers, Palette, Pipette, User } from 'lucide-react-native';
 import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -34,7 +34,7 @@ const TabItem = ({
     });
 
     const handlePressIn = () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        safeHaptics.impact();
         scale.value = withSpring(0.9, { damping: 15, stiffness: 200 });
     };
 

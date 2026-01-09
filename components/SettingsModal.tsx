@@ -4,11 +4,12 @@ import { SettingsRow } from '@/components/SettingsRow';
 import { useAuth } from '@/context/AuthContext';
 import { usePro } from '@/context/ProContext';
 import { useUpgradeFlow } from '@/hooks/useUpgradeFlow';
+import { useSettingsStore } from '@/store/useSettingsStore';
 import { showToast } from '@/utils/toast';
 import { useRouter } from 'expo-router';
-import { Crown, HelpCircle, Lock, LogOut, Moon, Zap } from 'lucide-react-native';
+import { Crown, HelpCircle, Lock, LogOut, Zap } from 'lucide-react-native';
 import React from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, SlideInUp } from 'react-native-reanimated';
 
 interface SettingsModalProps {
@@ -18,9 +19,10 @@ interface SettingsModalProps {
 }
 
 export const SettingsModal = ({ visible, onClose, onManageSubscription }: SettingsModalProps) => {
-    const { isGuest, signOut } = useAuth();
-    const { isPro, resetProStatus, setPendingUpgrade } = usePro();
+    const { isGuest, signOut, deleteAccount } = useAuth();
+    const { isPro } = usePro();
     const router = useRouter();
+    const { hapticsEnabled, setHapticsEnabled } = useSettingsStore();
 
     const { triggerUpgradeFlow } = useUpgradeFlow();
 
@@ -33,14 +35,39 @@ export const SettingsModal = ({ visible, onClose, onManageSubscription }: Settin
         triggerUpgradeFlow(() => {
             onClose();
             onManageSubscription();
-        }, {
-            onGuestIntent: onClose
         });
     };
 
-    // Mock Toggle States
-    const [darkMode, setDarkMode] = React.useState(false);
-    const [haptics, setHaptics] = React.useState(true);
+    const handleOpenSupport = () => {
+        Linking.openURL('https://www.palettepro.app/faq.html');
+    };
+
+    const handleOpenPrivacy = () => {
+        Linking.openURL('https://www.palettepro.app/privacy.html');
+    };
+
+    const handleDeleteAccount = () => {
+        Alert.alert(
+            "Delete Account",
+            "Are you sure you want to permanently delete your account and all saved palettes? This action cannot be undone.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        const { error } = await deleteAccount();
+                        if (error) {
+                            Alert.alert('Error', 'Failed to delete account. Please try again or contact support.');
+                        } else {
+                            onClose();
+                            showToast("Account deleted successfully.");
+                        }
+                    }
+                }
+            ]
+        );
+    };
 
     if (!visible) return null;
 
@@ -84,37 +111,28 @@ export const SettingsModal = ({ visible, onClose, onManageSubscription }: Settin
                             <AppText style={styles.groupTitle}>MEMBERSHIP</AppText>
                             <SettingsRow
                                 label={isPro ? "Pro Member" : "Upgrade to Pro"}
+                                subtitle={isPro ? (
+                                    <AppText style={{ color: '#F59E0B', fontSize: 12, fontFamily: 'Inter_500Medium' }}>
+                                        ● Status: Active
+                                    </AppText>
+                                ) : undefined}
                                 icon={<Crown size={20} />}
-                                type={isPro ? "link" : "link"} // Both are links/buttons
-                                value={isPro} // Not really used for link type but good for tracking
+                                type={isPro ? "link" : "link"}
+                                value={isPro}
                                 onPress={handleUpgradePress}
-                            // Optional: Change color if upgrade needed
-                            // We can handle this by passing a custom icon with color above if needed, 
-                            // but SettingsRow handles coloring.
                             />
-                            {isPro && (
-                                <AppText style={{ color: '#F59E0B', fontSize: 12, marginTop: -8, marginBottom: 12, marginLeft: 44, fontFamily: 'Inter_500Medium' }}>
-                                    ● Status: Active
-                                </AppText>
-                            )}
                         </View>
 
                         {/* Group 1: Preferences */}
                         <View style={styles.group}>
                             <AppText style={styles.groupTitle}>PREFERENCES</AppText>
-                            <SettingsRow
-                                label="Appearance"
-                                icon={<Moon size={20} />}
-                                type="toggle"
-                                value={darkMode}
-                                onToggle={setDarkMode}
-                            />
+                            {/* Appearance removed as app is Dark Mode only */}
                             <SettingsRow
                                 label="Haptic Feedback"
                                 icon={<Zap size={20} />}
                                 type="toggle"
-                                value={haptics}
-                                onToggle={setHaptics}
+                                value={hapticsEnabled}
+                                onToggle={setHapticsEnabled}
                             />
                         </View>
 
@@ -125,13 +143,13 @@ export const SettingsModal = ({ visible, onClose, onManageSubscription }: Settin
                                 label="Help & FAQ"
                                 icon={<HelpCircle size={20} />}
                                 type="link"
-                                onPress={() => { }}
+                                onPress={handleOpenSupport}
                             />
                             <SettingsRow
                                 label="Privacy Policy"
                                 icon={<Lock size={20} />}
                                 type="link"
-                                onPress={() => { }}
+                                onPress={handleOpenPrivacy}
                             />
                             <SettingsRow
                                 label="Log Out"
@@ -139,13 +157,19 @@ export const SettingsModal = ({ visible, onClose, onManageSubscription }: Settin
                                 type="destructive"
                                 onPress={signOut}
                             />
-                            {/* Debug Section */}
+                        </View>
+
+                        {/* Group 3: Danger Zone */}
+                        <View style={styles.group}>
+                            <AppText style={[styles.groupTitle, { color: '#EF4444' }]}>DANGER ZONE</AppText>
                             <SettingsRow
-                                label="[DEBUG] Reset Pro Status"
-                                icon={<Zap size={20} color="#EF4444" />}
+                                label="Delete Account"
+                                icon={<LogOut size={20} />}
                                 type="destructive"
-                                onPress={resetProStatus}
+                                onPress={handleDeleteAccount}
                             />
+                            {/* Debug Section - Keep simpler one or remove if needed */}
+
                         </View>
 
                         {/* Bottom Spacer for SafeArea */}

@@ -1,4 +1,4 @@
-import * as Haptics from 'expo-haptics';
+import { safeHaptics } from '@/utils/haptics';
 import { Image } from 'expo-image';
 import { ImageOff } from 'lucide-react-native';
 import React, { useState } from 'react';
@@ -44,7 +44,7 @@ export const GalleryCard = ({ item, index, onPress }: GalleryCardProps) => {
     };
 
     const handlePress = () => {
-        Haptics.selectionAsync();
+        safeHaptics.selection();
         onPress();
     };
 

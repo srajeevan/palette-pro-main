@@ -6,6 +6,7 @@ import { StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 interface SettingsRowProps {
     icon: React.ReactNode;
     label: string;
+    subtitle?: React.ReactNode; // Added optional subtitle
     type: 'link' | 'toggle' | 'destructive';
     value?: boolean;
     onPress?: () => void;
@@ -15,6 +16,7 @@ interface SettingsRowProps {
 export const SettingsRow = ({
     icon,
     label,
+    subtitle,
     type,
     value,
     onPress,
@@ -38,7 +40,7 @@ export const SettingsRow = ({
     return (
         <TouchableOpacity
             onPress={handlePress}
-            onPress={onPress}
+            // duplicated onPress removed
             disabled={type === 'toggle'}
             activeOpacity={0.7}
             style={styles.container}
@@ -48,12 +50,23 @@ export const SettingsRow = ({
                     {/* Clone icon to enforce color if needed, or rely on parent passing correct color */}
                     {React.cloneElement(icon as React.ReactElement, { color: type === 'destructive' ? '#EF4444' : '#A1A1AA' })}
                 </View>
-                <AppText style={[
-                    styles.label,
-                    type === 'destructive' && styles.destructiveLabel
-                ]}>
-                    {label}
-                </AppText>
+                <View>
+                    <AppText style={[
+                        styles.label,
+                        type === 'destructive' && styles.destructiveLabel
+                    ]}>
+                        {label}
+                    </AppText>
+                    {subtitle && (
+                        <View style={{ marginTop: 2 }}>
+                            {typeof subtitle === 'string' ? (
+                                <AppText style={{ color: '#71717A', fontSize: 13, fontFamily: 'Inter_400Regular' }}>{subtitle}</AppText>
+                            ) : (
+                                subtitle
+                            )}
+                        </View>
+                    )}
+                </View>
             </View>
 
             <View style={styles.rightContent}>

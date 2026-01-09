@@ -12,6 +12,7 @@ import { getPaletteCount, savePalette } from '@/services/paletteService';
 import { uploadReferenceImage } from '@/services/storageService';
 import { useImagePicker } from '@/services/useImagePicker';
 import { useProjectStore } from '@/store/useProjectStore';
+import { safeHaptics } from '@/utils/haptics';
 import { generatePalette } from '@/utils/paletteEngine';
 import { showToast } from '@/utils/toast';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
@@ -147,9 +148,7 @@ export default function PaletteScreen() {
         setSelectedColor(color);
         mixingRecipeBottomSheetRef.current?.present();
         // Haptic feedback with error handling
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {
-            // Silently fail if haptics not available
-        });
+        safeHaptics.impact();
     };
 
     const handleSavePalette = async () => {
@@ -236,11 +235,8 @@ export default function PaletteScreen() {
                             showToast(error.message || "The cloud hiccuped. Try again? ☁️");
                         } else {
                             // Haptic feedback for success
-                            try {
-                                await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                            } catch (e) {
-                                // Silently fail if haptics not available
-                            }
+                            // Haptic feedback for success
+                            await safeHaptics.notification(Haptics.NotificationFeedbackType.Success);
                             // Alert removed in favor of Toast below
 
                             showToast(`From mind to memory! "${name}" is saved. ✨`);

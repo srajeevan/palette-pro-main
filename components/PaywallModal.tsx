@@ -6,7 +6,7 @@ import { BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
 import { Crown, User } from 'lucide-react-native';
 import React, { forwardRef, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Dimensions, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, Linking, TouchableOpacity, View } from 'react-native';
 import { PurchasesPackage } from 'react-native-purchases';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -261,10 +261,10 @@ export const PaywallModal = forwardRef<BottomSheetModal, PaywallModalProps>(({ o
                     <TouchableOpacity onPress={() => restorePurchases()}>
                         <AppText className="text-xs font-medium" style={{ color: '#52525B' }}>Restore</AppText>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => showToast('Terms of Service: This is a placeholder.')}>
+                    <TouchableOpacity onPress={() => Linking.openURL('https://www.palettepro.app/terms.html')}>
                         <AppText className="text-xs font-medium" style={{ color: '#52525B' }}>Terms of Service</AppText>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => showToast('Privacy Policy: This is a placeholder.')}>
+                    <TouchableOpacity onPress={() => Linking.openURL('https://www.palettepro.app/privacy.html')}>
                         <AppText className="text-xs font-medium" style={{ color: '#52525B' }}>Privacy Policy</AppText>
                     </TouchableOpacity>
                 </View>
