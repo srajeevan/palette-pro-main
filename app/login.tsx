@@ -24,9 +24,50 @@ export default function LoginScreen() {
     // Auto-switch to Sign Up if coming from "Create Account" flow
     const [isSignUp, setIsSignUp] = useState(pendingUpgrade);
 
+    const isValidEmail = (email: string) => {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    };
+
+    const checkEmailTypos = (email: string) => {
+        const domain = email.split('@')[1];
+        if (!domain) return null;
+
+        const commonTypos: { [key: string]: string } = {
+            // Gmail
+            'gmil.com': 'gmail.com', 'gnail.com': 'gmail.com', 'gmai.com': 'gmail.com', 'gmal.com': 'gmail.com',
+            'gmail.co': 'gmail.com', 'gmail.om': 'gmail.com', 'gmail.con': 'gmail.com', 'gmail.cm': 'gmail.com',
+            'gmil.om': 'gmail.com', 'gmil.co': 'gmail.com',
+
+            // Yahoo
+            'yaho.com': 'yahoo.com', 'yahoo.co': 'yahoo.com', 'yahoo.om': 'yahoo.com', 'yahoo.con': 'yahoo.com',
+
+            // Hotmail
+            'hotmal.com': 'hotmail.com', 'hormail.com': 'hotmail.com', 'hotmail.co': 'hotmail.com', 'hotmail.om': 'hotmail.com',
+
+            // Outlook
+            'otlook.com': 'outlook.com', 'outlook.co': 'outlook.com', 'outlook.om': 'outlook.com',
+
+            // iCloud
+            'iclud.com': 'icloud.com', 'icloud.co': 'icloud.com', 'icloud.om': 'icloud.com',
+        };
+
+        return commonTypos[domain] || null;
+    };
+
     const handleAuth = async () => {
         if (!email || !password || (isSignUp && !fullName)) {
             showToast('Please fill in all fields');
+            return;
+        }
+
+        if (!isValidEmail(email)) {
+            showToast('Please enter a valid email address');
+            return;
+        }
+
+        const typoSuggestion = checkEmailTypos(email.toLowerCase());
+        if (typoSuggestion) {
+            showToast(`Did you mean @${typoSuggestion}?`);
             return;
         }
 
