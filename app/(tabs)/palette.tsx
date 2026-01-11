@@ -129,6 +129,17 @@ export default function PaletteScreen() {
                 console.log('🎨 handleGenerate - colors length:', colors.length);
                 setGeneratedPalette(colors);
                 console.log('✅ handleGenerate - setGeneratedPalette called');
+
+                // ⭐️ Smart Review Trigger (Generation = 1 point)
+                try {
+                    const { reviewService } = require('@/services/reviewService');
+                    if (reviewService) {
+                        reviewService.recordInteraction(1);
+                    }
+                } catch (e) {
+                    // Ignore missing module
+                }
+
             } catch (error) {
                 console.error("Palette Gen Error:", error);
             }
@@ -235,10 +246,20 @@ export default function PaletteScreen() {
                             showToast(error.message || "The cloud hiccuped. Try again? ☁️");
                         } else {
                             // Haptic feedback for success
-                            // Haptic feedback for success
                             await safeHaptics.notification(Haptics.NotificationFeedbackType.Success);
-                            // Alert removed in favor of Toast below
 
+                            // ⭐️ Smart Review Trigger
+                            // Saving a palette is a high-value action (2 points)
+                            try {
+                                const { reviewService } = require('@/services/reviewService');
+                                if (reviewService) {
+                                    reviewService.recordInteraction(2);
+                                }
+                            } catch (e) {
+                                console.log('⚠️ Review service skipped (likely native module missing):', e);
+                            }
+
+                            // Alert removed in favor of Toast below
                             showToast(`From mind to memory! "${name}" is saved. ✨`);
                         }
                     }

@@ -41,6 +41,7 @@ export default function LoginScreen() {
                         data: {
                             full_name: fullName,
                         },
+                        emailRedirectTo: 'https://palettepro.app', // Redirects to web (Universal Link recommended)
                     },
                 });
                 if (error) throw error;
