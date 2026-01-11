@@ -22,9 +22,17 @@ interface Ingredient {
 }
 
 // Helper to map pigment names to hex colors
+import { UNIVERSAL_PALETTE } from '@/constants/Pigments';
+
 const getPigmentColor = (name: string): string => {
-    const n = name.toLowerCase();
-    if (n.includes('white')) return '#F9FAFB'; // Slightly off-white for visibility against white bg
+    const n = name.trim().toLowerCase();
+
+    // 1. Try exact/partial match in Universal Palette
+    const match = UNIVERSAL_PALETTE.find(p => p.name.toLowerCase() === n || p.name.toLowerCase().includes(n));
+    if (match) return match.hex;
+
+    // 2. Fallbacks for generic names not in palette
+    if (n.includes('white')) return '#F9FAFB';
     if (n.includes('black')) return '#1a1a1a';
     if (n.includes('burnt umber')) return '#4a3728';
     if (n.includes('umber')) return '#635147';
@@ -34,6 +42,9 @@ const getPigmentColor = (name: string): string => {
     if (n.includes('blue')) return '#0047AB';
     if (n.includes('green')) return '#008000';
     if (n.includes('yellow')) return '#FFD700';
+    if (n.includes('crimson')) return '#E32636'; // Fallback for crimson if not matched
+    if (n.includes('magenta')) return '#9A1F4C';
+
     return '#9ca3af'; // default gray
 };
 

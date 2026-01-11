@@ -16,10 +16,7 @@ import { GalleryDetailModal } from '@/components/GalleryDetailModal';
 import { SettingsModal } from '@/components/SettingsModal';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 
-
 import { PaywallModal } from '@/components/PaywallModal';
-
-// ... (imports)
 
 export default function ProfileScreen() {
     const { user, loading, isGuest, signOut } = useAuth();
@@ -65,6 +62,31 @@ export default function ProfileScreen() {
             console.error('❌ Profile: Exception loading palettes:', e);
         } finally {
             setLoadingPalettes(false);
+        }
+    };
+
+    const handleOpenInStudio = (item: GalleryItem) => {
+        console.log('🎨 Opening in Studio:', item.id);
+
+        // 1. Update Store
+        try {
+            const { setImageUri, setGeneratedPalette, resetProject } = require('@/store/useProjectStore').useProjectStore.getState();
+
+            resetProject(); // Clear previous state
+            setImageUri(item.imageUrl);
+            setGeneratedPalette(item.colors);
+            // Note: Picked colors are reset by resetProject(), which is correct as this is a saved palette.
+
+            // 2. Close Modal
+            setSelectedItem(null);
+            detailModalRef.current?.dismiss();
+
+            // 3. Navigate
+            setTimeout(() => {
+                router.push('/(tabs)/palette');
+            }, 300);
+        } catch (e) {
+            console.error('Failed to open in studio:', e);
         }
     };
 
@@ -176,6 +198,7 @@ export default function ProfileScreen() {
                     item={selectedItem}
                     onClose={() => setSelectedItem(null)}
                     onShare={handleShare}
+                    onOpenInStudio={handleOpenInStudio}
                 />
 
                 {/* Settings Modal */}

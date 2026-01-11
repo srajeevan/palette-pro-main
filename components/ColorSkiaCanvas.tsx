@@ -1,7 +1,8 @@
 import { useProjectStore } from '@/store/useProjectStore';
-import { Canvas, Image, useCanvasRef, useImage } from '@shopify/react-native-skia';
-import React, { forwardRef, useImperativeHandle } from 'react';
+import { Canvas, Image, Skia, SkImage, useCanvasRef } from '@shopify/react-native-skia';
+import React, { forwardRef, useImperativeHandle, useState } from 'react';
 import { ActivityIndicator, Dimensions, PixelRatio, View } from 'react-native';
+import { AppText } from './AppText';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -10,7 +11,7 @@ const CANVAS_HEIGHT = SCREEN_HEIGHT * 0.55;
 
 export interface ColorSkiaCanvasRef {
     getPixelColor: (x: number, y: number) => { r: number, g: number, b: number } | null;
-    getImageSnapshot: () => import("@shopify/react-native-skia").SkImage | null;
+    getImageSnapshot: () => SkImage | null;
 }
 
 interface ColorSkiaCanvasProps {
@@ -22,8 +23,51 @@ interface ColorSkiaCanvasProps {
 export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef, ColorSkiaCanvasProps>((props, ref) => {
     const { width = CANVAS_WIDTH, height = CANVAS_HEIGHT, onImageLoaded } = props;
     const { imageUri } = useProjectStore();
-    const skiaImage = useImage(imageUri || '');
+
+    // Manual Image Loading State
+    const [skiaImage, setSkiaImage] = useState<SkImage | null>(null);
+    const [hasError, setHasError] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string>('');
+
     const internalCanvasRef = useCanvasRef();
+
+    React.useEffect(() => {
+        if (!imageUri) return;
+
+        console.log('🎨 ColorSkiaCanvas - Starting manual load for:', imageUri);
+        setHasError(false);
+        setErrorMessage('');
+        setSkiaImage(null); // Reset previous image
+
+        const load = async () => {
+            try {
+                // 1. Fetch Bytes
+                console.log('🎨 ColorSkiaCanvas - Fetching bytes...');
+                const response = await fetch(imageUri);
+                if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+
+                const buffer = await response.arrayBuffer();
+                console.log('🎨 ColorSkiaCanvas - Buffer received:', buffer.byteLength);
+
+                // 2. Decode with Skia
+                const data = Skia.Data.fromBytes(new Uint8Array(buffer));
+                const img = Skia.Image.MakeImageFromEncoded(data);
+
+                if (img) {
+                    console.log('✅ ColorSkiaCanvas - Decoded successfully!');
+                    setSkiaImage(img);
+                } else {
+                    throw new Error("Skia returned null (Invalid Image Format?)");
+                }
+            } catch (e: any) {
+                console.error('❌ ColorSkiaCanvas Error:', e);
+                setHasError(true);
+                setErrorMessage(e.message || "Unknown error");
+            }
+        };
+
+        load();
+    }, [imageUri]);
 
     React.useEffect(() => {
         if (skiaImage && onImageLoaded) {
@@ -33,13 +77,7 @@ export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef, ColorSkiaCanvasPro
 
     useImperativeHandle(ref, () => ({
         getImageSnapshot: () => {
-            // Note: Returning the *original* loaded image is better for palette generation than the canvas snapshot
-            // because canvas snapshot includes whitespace/letterboxing if the aspect ratio differs!
-            // We want the pure source image colors.
             return skiaImage || null;
-
-            // Alternative: If we specifically WANT the canvas snapshot (what is seen):
-            // return internalCanvasRef.current?.makeImageSnapshot() || null;
         },
         getPixelColor: (x: number, y: number) => {
             if (!skiaImage || !internalCanvasRef.current) return null;
@@ -63,13 +101,10 @@ export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef, ColorSkiaCanvasPro
             // 3. Read Pixel from Canvas Snapshot
             const snapshot = internalCanvasRef.current.makeImageSnapshot();
             if (snapshot) {
-                // Skia Snapshot is in Physical Pixels on Retina screens
-                // We must scale logical 'x, y' to physical coordinates
                 const density = PixelRatio.get();
                 const physicalX = Math.round(x * density);
                 const physicalY = Math.round(y * density);
 
-                // Ensure we don't go out of bounds
                 if (physicalX < 0 || physicalX >= snapshot.width() || physicalY < 0 || physicalY >= snapshot.height()) {
                     return null;
                 }
@@ -80,16 +115,29 @@ export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef, ColorSkiaCanvasPro
                     height: 1,
                     colorType: 4,
                     alphaType: 1,
-                }, pixels); // Pass buffer as 4th argument
+                }, pixels);
 
-                // If returns boolean/void, check buffer
-                if (pixels[3] !== 0 || pixels[0] !== 0) { // Check if alpha or r is set (approximation)
+                if (pixels[3] !== 0 || pixels[0] !== 0) {
                     return { r: pixels[0], g: pixels[1], b: pixels[2] };
                 }
             }
             return null;
         }
     }));
+
+    if (hasError) {
+        return (
+            <View
+                style={{ width: props.width || CANVAS_WIDTH, height: props.height || CANVAS_HEIGHT }}
+                className="justify-center items-center bg-[#1C1C1E] p-4"
+            >
+                <ActivityIndicator size="small" color="#EF4444" />
+                <AppText className="text-red-500 mt-2 text-xs text-center">
+                    Load Error: {errorMessage}
+                </AppText>
+            </View>
+        );
+    }
 
     if (!imageUri || !skiaImage) {
         return (
@@ -98,6 +146,7 @@ export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef, ColorSkiaCanvasPro
                 className="justify-center items-center bg-[#1C1C1E]"
             >
                 <ActivityIndicator size="large" color="#A1A1AA" />
+                <AppText className="text-stone-500 mt-4 text-xs font-medium">Rendering...</AppText>
             </View>
         );
     }
@@ -107,11 +156,6 @@ export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef, ColorSkiaCanvasPro
     const imgH = skiaImage.height();
     const C_W = props.width || CANVAS_WIDTH;
     const C_H = props.height || CANVAS_HEIGHT;
-    const scale = Math.min(C_W / imgW, C_H / imgH);
-    const displayW = imgW * scale;
-    const displayH = imgH * scale;
-    const x = (C_W - displayW) / 2;
-    const y = (C_H - displayH) / 2;
 
     return (
         <View style={{ width: C_W, height: C_H }} className="overflow-hidden relative">

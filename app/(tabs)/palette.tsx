@@ -259,7 +259,7 @@ export default function PaletteScreen() {
                         subtitle="Extract colors from your image."
                     />
                     <View className="flex-1 -mt-20">
-                        <UploadPlaceholderView onImageSelected={pickImage} />
+                        <UploadPlaceholderView />
                     </View>
                 </View>
             </SafeAreaView>

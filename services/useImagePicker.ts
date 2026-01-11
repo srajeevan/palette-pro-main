@@ -58,7 +58,7 @@ export const useImagePicker = () => {
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: false, // Disable cropping to allow full image
-                quality: 1,
+                quality: 0.7,
             });
 
             if (!result.canceled && result.assets[0]) {
@@ -79,7 +79,7 @@ export const useImagePicker = () => {
         try {
             const result = await ImagePicker.launchCameraAsync({
                 allowsEditing: false,
-                quality: 1,
+                quality: 0.7,
             });
 
             if (!result.canceled && result.assets[0]) {

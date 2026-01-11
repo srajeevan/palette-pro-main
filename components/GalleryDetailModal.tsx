@@ -12,10 +12,11 @@ interface GalleryDetailModalProps {
     item: GalleryItem | null;
     onClose: () => void;
     onShare: () => void;
+    onOpenInStudio: (item: GalleryItem) => void;
 }
 
 export const GalleryDetailModal = forwardRef<BottomSheetModal, GalleryDetailModalProps>(
-    ({ item, onClose, onShare }, ref) => {
+    ({ item, onClose, onShare, onOpenInStudio }, ref) => {
         const snapPoints = useMemo(() => ['85%'], []);
         const { width } = Dimensions.get('window');
 
@@ -66,16 +67,26 @@ export const GalleryDetailModal = forwardRef<BottomSheetModal, GalleryDetailModa
                         ))}
                     </View>
 
-                    {/* Floating Share Button */}
+                    {/* Floating Action Buttons */}
                     <View style={styles.fabContainer}>
-                        <TouchableOpacity
-                            onPress={onShare}
-                            style={styles.fab}
-                            activeOpacity={0.8}
-                        >
-                            <Share size={24} color="#FFFFFF" />
-                            <AppText style={styles.fabText}>Share Card</AppText>
-                        </TouchableOpacity>
+                        <View style={{ flexDirection: 'row', gap: 12 }}>
+                            <TouchableOpacity
+                                onPress={() => onOpenInStudio(item)}
+                                style={[styles.fab, { backgroundColor: '#3E63DD', paddingHorizontal: 24 }]}
+                                activeOpacity={0.8}
+                            >
+                                <AppText style={styles.fabText}>Open</AppText>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                onPress={onShare}
+                                style={[styles.fab, { backgroundColor: '#1A1A1A', paddingHorizontal: 24 }]}
+                                activeOpacity={0.8}
+                            >
+                                <Share size={20} color="#FFFFFF" />
+                                <AppText style={styles.fabText}>Share</AppText>
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
                 </BottomSheetView>
