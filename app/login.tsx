@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { useProjectStore } from '@/store/useProjectStore';
 import { showToast } from '@/utils/toast';
 import { useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { Palette } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
@@ -20,7 +21,8 @@ export default function LoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [fullName, setFullName] = useState('');
-    const [authLoading, setAuthLoading] = useState(false);
+    const [emailLoading, setEmailLoading] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
     // Auto-switch to Sign Up if coming from "Create Account" flow
     const [isSignUp, setIsSignUp] = useState(pendingUpgrade);
 
@@ -71,7 +73,7 @@ export default function LoginScreen() {
             return;
         }
 
-        setAuthLoading(true);
+        setEmailLoading(true);
         try {
             if (isSignUp) {
                 console.log('Attempting Sign Up:', email);
@@ -105,7 +107,50 @@ export default function LoginScreen() {
             console.error('Auth Error:', error);
             showToast(error.message || 'Authentication failed');
         } finally {
-            setAuthLoading(false);
+            setEmailLoading(false);
+        }
+    };
+
+
+    const performGoogleSignIn = async () => {
+        setGoogleLoading(true);
+        try {
+            const { data, error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: 'palettepro://auth/callback',
+                    skipBrowserRedirect: true,
+                    queryParams: {
+                        prompt: 'select_account',
+                    },
+                },
+            });
+            if (error) throw error;
+
+            if (data?.url) {
+                const result = await WebBrowser.openAuthSessionAsync(data.url, 'palettepro://');
+
+                if (result.type === 'success' && result.url) {
+                    const url = result.url;
+                    // Extract access_token and refresh_token from the hash
+                    const access_token = url.match(/access_token=([^&]*)/)?.[1];
+                    const refresh_token = url.match(/refresh_token=([^&]*)/)?.[1];
+
+                    if (access_token && refresh_token) {
+                        const { error: sessionError } = await supabase.auth.setSession({
+                            access_token,
+                            refresh_token,
+                        });
+                        if (sessionError) throw sessionError;
+                    }
+                } else if (result.type === 'cancel') {
+                    setGoogleLoading(false);
+                }
+            }
+        } catch (error: any) {
+            console.error('Google Auth Error:', error);
+            showToast(error.message || 'Google Sign-In failed');
+            setGoogleLoading(false);
         }
     };
 
@@ -188,7 +233,7 @@ export default function LoginScreen() {
                             <AppButton
                                 title={isSignUp ? 'Create Account' : 'Sign In'}
                                 onPress={handleAuth}
-                                loading={authLoading}
+                                loading={emailLoading}
                                 variant="primary"
                                 className="w-full py-4 bg-[#3E63DD]"
                             />
@@ -216,8 +261,17 @@ export default function LoginScreen() {
                     {/* Guest Action */}
                     <Animated.View
                         entering={FadeInDown.springify().damping(12).delay(400)}
-                        className="items-center"
+                        className="items-center space-y-4"
                     >
+                        <AppButton
+                            title="Sign in with Google"
+                            onPress={performGoogleSignIn}
+                            loading={googleLoading}
+                            variant="outline"
+                            className="w-full border-[#28282A] bg-[#1C1C1E] mb-4"
+                            textStyle={{ color: '#FFFFFF' }}
+                        />
+
                         <AppButton
                             title="Continue as Guest"
                             onPress={() => {
