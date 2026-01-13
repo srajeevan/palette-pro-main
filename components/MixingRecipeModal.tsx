@@ -7,7 +7,7 @@ import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { MultiSegmentDonut } from './MultiSegmentDonut';
 import { PaintTubeRow } from './PaintTubeRow';
 
-// ... imports
+import { Info } from 'lucide-react-native';
 interface MixingRecipeModalProps {
     visible: boolean;
     recipeData: string; // e.g., "50% Burnt Umber + 50% White"
@@ -171,6 +171,18 @@ export const MixingRecipeModal = ({ visible, recipeData, onClose, onUnlock }: Mi
                                 </View>
                             )}
                         </View>
+
+                        {/* Disclaimer */}
+                        {ingredients.length > 0 && (
+                            <View style={{ paddingHorizontal: 24, marginBottom: 16 }}>
+                                <View style={{ flexDirection: 'row', gap: 8, backgroundColor: 'rgba(0,0,0,0.03)', padding: 12, borderRadius: 12 }}>
+                                    <Info size={14} color="#6B7280" style={{ marginTop: 2 }} />
+                                    <Text style={{ flex: 1, fontSize: 12, color: '#6B7280', lineHeight: 16, fontFamily: 'Inter_400Regular' }}>
+                                        Results may vary slightly depending on specific pigment brands used.
+                                    </Text>
+                                </View>
+                            </View>
+                        )}
 
                         {/* Footer - Close Button */}
                         <View style={styles.footer}>

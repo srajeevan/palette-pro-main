@@ -257,14 +257,16 @@ export const PaywallModal = forwardRef<BottomSheetModal, PaywallModalProps>(({ o
                 )}
 
                 {/* Footer Links */}
-                <View className="flex-row justify-center space-x-6 pb-4">
-                    <TouchableOpacity onPress={() => restorePurchases()}>
+                <View className="flex-row justify-center items-center pb-8 pt-2">
+                    <TouchableOpacity onPress={() => restorePurchases()} style={{ padding: 12 }}>
                         <AppText className="text-xs font-medium" style={{ color: '#52525B' }}>Restore</AppText>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => Linking.openURL('https://www.palettepro.app/terms.html')}>
+                    <View style={{ width: 1, height: 12, backgroundColor: '#28282A' }} />
+                    <TouchableOpacity onPress={() => Linking.openURL('https://www.palettepro.app/terms.html').catch(err => console.error("Couldn't load page", err))} style={{ padding: 12 }}>
                         <AppText className="text-xs font-medium" style={{ color: '#52525B' }}>Terms of Service</AppText>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => Linking.openURL('https://www.palettepro.app/privacy.html')}>
+                    <View style={{ width: 1, height: 12, backgroundColor: '#28282A' }} />
+                    <TouchableOpacity onPress={() => Linking.openURL('https://www.palettepro.app/privacy.html').catch(err => console.error("Couldn't load page", err))} style={{ padding: 12 }}>
                         <AppText className="text-xs font-medium" style={{ color: '#52525B' }}>Privacy Policy</AppText>
                     </TouchableOpacity>
                 </View>

@@ -2,7 +2,7 @@ import { usePro } from '@/context/ProContext';
 import { getContrastColor, hexToRgb } from '@/utils/colorUtils';
 import { calculateMix, MixResult } from '@/utils/mixingEngine';
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
-import { Lock, X } from 'lucide-react-native';
+import { Info, Lock, X } from 'lucide-react-native';
 import React, { forwardRef, useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
@@ -218,6 +218,16 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                                             progressStyle
                                         ]}
                                     />
+                                </View>
+                            </Animated.View>
+
+                            {/* Disclaimer */}
+                            <Animated.View entering={FadeInDown.springify().damping(14).delay(400)}>
+                                <View className="flex-row gap-3 bg-[#28282A] p-4 rounded-xl border border-[#333]">
+                                    <Info size={16} color="#71717A" style={{ marginTop: 2 }} />
+                                    <AppText style={{ flex: 1, fontSize: 13, color: '#A1A1AA', lineHeight: 18, fontFamily: 'Inter_400Regular' }}>
+                                        Note: Recipes are based on standard professional oil pigments. Results may vary slightly depending on the specific brand or medium used.
+                                    </AppText>
                                 </View>
                             </Animated.View>
                         </>

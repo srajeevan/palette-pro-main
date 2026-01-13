@@ -7,7 +7,7 @@ import { useUpgradeFlow } from '@/hooks/useUpgradeFlow';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { showToast } from '@/utils/toast';
 import { useRouter } from 'expo-router';
-import { Crown, HelpCircle, Lock, LogOut, Zap } from 'lucide-react-native';
+import { Crown, HelpCircle, Lock, LogOut, Mail, Zap } from 'lucide-react-native';
 import React from 'react';
 import { Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, SlideInUp } from 'react-native-reanimated';
@@ -19,7 +19,7 @@ interface SettingsModalProps {
 }
 
 export const SettingsModal = ({ visible, onClose, onManageSubscription }: SettingsModalProps) => {
-    const { isGuest, signOut, deleteAccount } = useAuth();
+    const { isGuest, signOut, deleteAccount, user } = useAuth();
     const { isPro } = usePro();
     const router = useRouter();
     const { hapticsEnabled, setHapticsEnabled } = useSettingsStore();
@@ -40,6 +40,14 @@ export const SettingsModal = ({ visible, onClose, onManageSubscription }: Settin
 
     const handleOpenSupport = () => {
         Linking.openURL('https://www.palettepro.app/faq.html');
+    };
+
+    const handleEmailSupport = () => {
+        const subject = `PalettePro Support ${user?.id ? `(User: ${user.id.substring(0, 8)})` : ''}`;
+        const url = `mailto:palettepro.help@gmail.com?subject=${encodeURIComponent(subject)}`;
+        Linking.openURL(url).catch(() => {
+            showToast('Could not open mail app');
+        });
     };
 
     const handleOpenPrivacy = () => {
@@ -139,6 +147,12 @@ export const SettingsModal = ({ visible, onClose, onManageSubscription }: Settin
                         {/* Group 2: Support */}
                         <View style={styles.group}>
                             <AppText style={styles.groupTitle}>SUPPORT</AppText>
+                            <SettingsRow
+                                label="Contact Support"
+                                icon={<Mail size={20} />}
+                                type="link"
+                                onPress={handleEmailSupport}
+                            />
                             <SettingsRow
                                 label="Help & FAQ"
                                 icon={<HelpCircle size={20} />}
