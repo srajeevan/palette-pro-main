@@ -52,9 +52,23 @@ export function ProProvider({ children }: { children: React.ReactNode }) {
             }
         };
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_IN' && session?.user) {
+                console.log('👤 Identifying User to RevenueCat:', session.user.id);
+                try {
+                    await Purchases.logIn(session.user.id);
+                } catch (e) {
+                    console.error('RevenueCat Login Failed:', e);
+                }
                 fetchProfileStatus();
+            } else if (event === 'SIGNED_OUT') {
+                console.log('👋 Logging out of RevenueCat');
+                try {
+                    await Purchases.logOut();
+                } catch (e) {
+                    console.warn('RevenueCat Logout Failed:', e);
+                }
+                setIsPro(false);
             }
         });
 
