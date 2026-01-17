@@ -168,26 +168,25 @@ export const PaywallModal = forwardRef<BottomSheetModal, PaywallModalProps>(({ o
                     <View className="mb-4 space-y-3">
                         {/* Yearly Option - Highlighted */}
                         <TouchableOpacity
-                            className={`flex-row items-center p-4 rounded-2xl border-2 ${selectedPackage?.packageType === 'ANNUAL' ? 'border-[#3E63DD] bg-[#1a1b26]' : 'border-[#28282A]'}`}
+                            className={`flex-row items-start p-4 rounded-2xl border-2 ${selectedPackage?.packageType === 'ANNUAL' ? 'border-[#3E63DD] bg-[#1a1b26]' : 'border-[#28282A]'}`}
                             onPress={() => setSelectedPackage(getPackage('ANNUAL'))}
                         >
-                            <View className={`w-5 h-5 rounded-full border-2 items-center justify-center mr-3 ${selectedPackage?.packageType === 'ANNUAL' ? 'border-[#3E63DD]' : 'border-stone-600'}`}>
+                            <View className={`w-5 h-5 rounded-full border-2 items-center justify-center mr-3 mt-1 ${selectedPackage?.packageType === 'ANNUAL' ? 'border-[#3E63DD]' : 'border-stone-600'}`}>
                                 {selectedPackage?.packageType === 'ANNUAL' && <View className="w-2.5 h-2.5 rounded-full bg-[#3E63DD]" />}
                             </View>
                             <View className="flex-1">
                                 <View className="flex-row items-center">
                                     <AppText className="font-bold text-base mr-2" style={{ color: '#FFFFFF' }}>Yearly Access</AppText>
-                                    <View className="bg-[#3E63DD] px-1.5 py-0.5 rounded">
-                                        <AppText className="text-[10px] font-bold text-white uppercase" style={{ fontFamily: 'SpaceMono' }}>BEST VALUE</AppText>
-                                    </View>
                                 </View>
                                 {/* Hook: Safe 40% */}
-                                <AppText className="text-xs mt-0.5" style={{ color: '#A1A1AA' }}>
-                                    {`Billed at ${getPriceString('ANNUAL')}/yr`}
+                                <AppText className="text-xs mt-1" style={{ color: '#A1A1AA' }}>
+                                    Equivalent to ${getYearlyMonthlyPrice()} per month, billed annually
                                 </AppText>
                             </View>
                             <View className="items-end">
-                                <AppText className="font-bold text-lg" style={{ color: '#FFFFFF' }}>${getYearlyMonthlyPrice()}<AppText className="text-xs" style={{ color: '#A1A1AA' }}>/mo</AppText></AppText>
+                                <AppText className="font-bold text-2xl" style={{ color: '#FFFFFF' }}>
+                                    {getPriceString('ANNUAL')} <AppText className="text-sm font-normal" style={{ color: '#A1A1AA' }}>/ year</AppText>
+                                </AppText>
                             </View>
                         </TouchableOpacity>
 
@@ -205,7 +204,7 @@ export const PaywallModal = forwardRef<BottomSheetModal, PaywallModalProps>(({ o
                                 <AppText className="text-xs mt-0.5" style={{ color: '#71717A' }}>Less than a tube of paint.</AppText>
                             </View>
                             <View className="items-end">
-                                <AppText className="font-bold text-lg" style={{ color: '#FFFFFF' }}>{getPriceString('MONTHLY')}<AppText className="text-xs" style={{ color: '#A1A1AA' }}>/mo</AppText></AppText>
+                                <AppText className="font-bold text-2xl" style={{ color: '#FFFFFF' }}>{getPriceString('MONTHLY')} <AppText className="text-sm font-normal" style={{ color: '#A1A1AA' }}>/mo</AppText></AppText>
                             </View>
                         </TouchableOpacity>
                     </View>
@@ -231,29 +230,34 @@ export const PaywallModal = forwardRef<BottomSheetModal, PaywallModalProps>(({ o
                             style={{ shadowColor: '#3E63DD', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 }}
                         >
                             <User size={20} color="white" style={{ marginRight: 8 }} />
-                            <AppText className="font-bold text-lg text-white uppercase tracking-wide" style={{ fontFamily: 'Inter_700Bold' }}>
+                            <AppText className="font-extrabold text-lg uppercase tracking-wide" style={{ color: 'white' }}>
                                 Create Account to Subscribe
                             </AppText>
                         </TouchableOpacity>
-                        <AppText className="text-center text-[10px] text-[#8E8E93] mt-3" style={{ fontFamily: 'Inter_500Medium' }}>
+                        <AppText className="text-center text-[10px] text-[#8E8E93] mt-3">
                             Save your palettes and sync across devices.
                         </AppText>
                     </View>
                 ) : (
-                    <TouchableOpacity
-                        onPress={handlePurchase}
-                        disabled={isLoading || !selectedPackage}
-                        className="w-full bg-[#3E63DD] py-4 rounded-full items-center justify-center mb-6 shadow-lg shadow-blue-500/40"
-                        style={{ shadowColor: '#3E63DD', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, opacity: (isLoading || !selectedPackage) ? 0.5 : 1 }}
-                    >
-                        {isLoading ? (
-                            <ActivityIndicator color="white" />
-                        ) : (
-                            <AppText className="font-bold text-lg text-white uppercase tracking-wide" style={{ fontFamily: 'Inter_700Bold' }}>
-                                {selectedPackage?.packageType === 'ANNUAL' ? 'Subscribe Yearly' : 'Subscribe Monthly'}
-                            </AppText>
-                        )}
-                    </TouchableOpacity>
+                    <View className="mb-6">
+                        <TouchableOpacity
+                            onPress={handlePurchase}
+                            disabled={isLoading || !selectedPackage}
+                            className="w-full bg-[#3E63DD] py-4 rounded-full items-center justify-center shadow-lg shadow-blue-500/40"
+                            style={{ shadowColor: '#3E63DD', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, opacity: (isLoading || !selectedPackage) ? 0.5 : 1 }}
+                        >
+                            {isLoading ? (
+                                <ActivityIndicator color="white" />
+                            ) : (
+                                <AppText className="font-extrabold text-lg uppercase tracking-wide" style={{ color: 'white' }}>
+                                    Subscribe — {selectedPackage?.product.priceString} per {selectedPackage?.packageType === 'ANNUAL' ? 'year' : 'month'}
+                                </AppText>
+                            )}
+                        </TouchableOpacity>
+                        <AppText className="text-center text-[10px] mt-3 px-4" style={{ lineHeight: 14, color: '#52525B' }}>
+                            Payment will be charged to your Apple ID. Subscription renews automatically unless canceled at least 24 hours before the end of the current period.
+                        </AppText>
+                    </View>
                 )}
 
                 {/* Footer Links */}
