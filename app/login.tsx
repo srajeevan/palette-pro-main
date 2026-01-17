@@ -5,6 +5,8 @@ import { usePro } from '@/context/ProContext';
 import { supabase } from '@/lib/supabase';
 import { useProjectStore } from '@/store/useProjectStore';
 import { showToast } from '@/utils/toast';
+import { AntDesign } from '@expo/vector-icons';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { Palette } from 'lucide-react-native';
@@ -154,6 +156,41 @@ export default function LoginScreen() {
         }
     };
 
+    const performAppleSignIn = async () => {
+        try {
+            const credential = await AppleAuthentication.signInAsync({
+                requestedScopes: [
+                    AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+                    AppleAuthentication.AppleAuthenticationScope.EMAIL,
+                ],
+            });
+
+            if (credential.identityToken) {
+                const { error, data } = await supabase.auth.signInWithIdToken({
+                    provider: 'apple',
+                    token: credential.identityToken,
+                });
+
+                if (error) throw error;
+
+                if (data.session) {
+                    // Navigate or handle success same as other methods if needed
+                    // AuthContext should pick it up automatically
+                }
+            } else {
+                throw new Error('No identityToken.');
+            }
+        } catch (e: any) {
+            if (e.code === 'ERR_CANCELED' || e.message?.toLowerCase().includes('canceled')) {
+                // User canceled, do nothing
+                console.log('Apple Sign-In canceled by user');
+            } else {
+                console.error('Apple Auth Error:', e);
+                showToast(e.message || 'Apple Sign-In failed');
+            }
+        }
+    };
+
     return (
         <SafeAreaView className="flex-1 bg-[#0A0A0B]" edges={['top', 'bottom']}>
             <KeyboardAvoidingView
@@ -263,6 +300,17 @@ export default function LoginScreen() {
                         entering={FadeInDown.springify().damping(12).delay(400)}
                         className="items-center space-y-4"
                     >
+                        {Platform.OS === 'ios' && (
+                            <AppButton
+                                title="Sign in with Apple"
+                                onPress={performAppleSignIn}
+                                variant="outline"
+                                className="w-full border-[#28282A] bg-[#1C1C1E] mb-4"
+                                textStyle={{ color: '#FFFFFF' }}
+                                icon={<AntDesign name="apple" size={20} color="white" />}
+                            />
+                        )}
+
                         <AppButton
                             title="Sign in with Google"
                             onPress={performGoogleSignIn}

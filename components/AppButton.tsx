@@ -8,6 +8,7 @@ interface AppButtonProps {
     disabled?: boolean;
     className?: string;
     textStyle?: object;
+    icon?: React.ReactNode;
 }
 
 export function AppButton({

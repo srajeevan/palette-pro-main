@@ -47,7 +47,8 @@
           "photosPermission": "The app accesses your photos to let you pick reference images for your palette.",
           "cameraPermission": "The app accesses your camera to let you take reference photos for your palette."
         }
-      ]
+      ],
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true
