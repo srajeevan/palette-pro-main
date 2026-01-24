@@ -45,24 +45,8 @@ export default function SquintScreen() {
     const { triggerUpgradeFlow } = useUpgradeFlow();
 
     const handleBlurChange = (value: number) => {
-        const percentage = (value / MAX_BLUR) * 100;
-        if (!isPro && percentage > 8) {
-
-            triggerUpgradeFlow(() => {
-                // Allowed to open Paywall
-                paywallRef.current?.present();
-            }, {
-                onGuestIntent: () => {
-                    // Reset blur if guest decides to upgrade (so it doesn't stay stuck if they cancel)
-                    setBlurIntensity(MAX_BLUR * 0.08);
-                }
-            });
-
-            // Cap locally while waiting
-            setBlurIntensity(MAX_BLUR * 0.08);
-        } else {
-            setBlurIntensity(value);
-        }
+        // Squint is now 100% Free!
+        setBlurIntensity(value);
     };
 
     if (!imageUri) {

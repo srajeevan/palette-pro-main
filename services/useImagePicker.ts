@@ -1,6 +1,7 @@
 import { useAuth } from '@/context/AuthContext';
 import { useProjectStore } from '@/store/useProjectStore';
 import { showToast } from '@/utils/toast';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadReferenceImage } from './storageService';
 
@@ -27,11 +28,21 @@ export const useImagePicker = () => {
     };
 
     const processImage = async (uri: string, width: number, height: number) => {
+        setUploading(true); // Show loading spinner during conversion + upload
         try {
+            // 1. Convert to JPEG (fixes HEIC/Skia crash)
+            console.log('🖼️ Converting image to JPEG...');
+            const manipResult = await manipulateAsync(
+                uri,
+                [], // No actions (resize/crop), just format conversion
+                { compress: 0.8, format: SaveFormat.JPEG }
+            );
+            const jpegUri = manipResult.uri;
+            console.log('✅ Conversion done:', jpegUri);
+
+            // 2. Upload if user is logged in
             if (user) {
-                setUploading(true);
-                const publicUrl = await uploadReferenceImage(uri, user.id);
-                setUploading(false);
+                const publicUrl = await uploadReferenceImage(jpegUri, user.id);
 
                 if (publicUrl) {
                     setImage(publicUrl, { width, height });
@@ -39,14 +50,18 @@ export const useImagePicker = () => {
                 }
             }
 
-            // Fallback to local URI if guest or upload failed (but generally should handle error better)
+            // Fallback (Guest or Upload Failed): Use the converted local JPEG
+            setImage(jpegUri, { width, height });
+            return jpegUri;
+
+        } catch (error) {
+            console.error('❌ Error processing image:', error);
+            showToast("Failed to process image. Please try again.");
+            // Last resort fallback
             setImage(uri, { width, height });
             return uri;
-        } catch (error) {
-            console.error('Error processing image:', error);
+        } finally {
             setUploading(false);
-            setImage(uri, { width, height }); // Fallback
-            return uri;
         }
     };
 

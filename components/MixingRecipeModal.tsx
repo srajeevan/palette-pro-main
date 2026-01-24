@@ -1,5 +1,6 @@
 import { usePro } from '@/context/ProContext';
 import { useUpgradeFlow } from '@/hooks/useUpgradeFlow';
+import { checkDailyMixingLimit, incrementDailyMixingCount } from '@/utils/usage';
 import { BlurView } from 'expo-blur';
 import React, { useMemo } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -90,6 +91,33 @@ const parseRecipe = (recipe: string): Ingredient[] => {
 export const MixingRecipeModal = ({ visible, recipeData, onClose, onUnlock }: MixingRecipeModalProps) => {
     const ingredients = useMemo(() => parseRecipe(recipeData), [recipeData]);
     const { isPro } = usePro();
+    const [isViewAllowed, setIsViewAllowed] = React.useState(false);
+    const [dailyLimitReached, setDailyLimitReached] = React.useState(false);
+
+    React.useEffect(() => {
+        if (visible) {
+            const checkLimit = async () => {
+                if (isPro) {
+                    setIsViewAllowed(true);
+                    setDailyLimitReached(false);
+                } else {
+                    const { allowed } = await checkDailyMixingLimit('studio');
+                    if (allowed) {
+                        setIsViewAllowed(true);
+                        setDailyLimitReached(false);
+                        await incrementDailyMixingCount('studio');
+                    } else {
+                        setIsViewAllowed(false);
+                        setDailyLimitReached(true);
+                    }
+                }
+            };
+            checkLimit();
+        } else {
+            // Reset on close
+            setIsViewAllowed(false);
+        }
+    }, [visible, isPro]);
 
     const { triggerUpgradeFlow } = useUpgradeFlow();
 
@@ -132,7 +160,7 @@ export const MixingRecipeModal = ({ visible, recipeData, onClose, onUnlock }: Mi
                             {ingredients.length > 0 ? (
                                 <>
                                     {/* Left Column: Chart */}
-                                    <View style={[styles.chartColumn, !isPro && { opacity: 0.1 }]}>
+                                    <View style={[styles.chartColumn, !isViewAllowed && { opacity: 0.1 }]}>
                                         <MultiSegmentDonut data={ingredients} size={140} strokeWidth={16} />
                                     </View>
 
@@ -145,22 +173,24 @@ export const MixingRecipeModal = ({ visible, recipeData, onClose, onUnlock }: Mi
                                             >
                                                 <PaintTubeRow
                                                     color={ing.color}
-                                                    percentage={isPro ? ing.percentage : 0} // Hide percentage
-                                                    name={isPro ? ing.name : ing.name} // Show name but maybe hide specific brand if wanted, for now name is fine
-                                                    isLocked={!isPro}
+                                                    percentage={isViewAllowed ? ing.percentage : 0} // Hide percentage
+                                                    name={isViewAllowed ? ing.name : ing.name} // Show name 
+                                                    isLocked={!isViewAllowed}
                                                 />
                                             </Animated.View>
                                         ))}
                                     </View>
 
                                     {/* Locked Overlay */}
-                                    {!isPro && (
+                                    {!isViewAllowed && (
                                         <View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.1)' }]}>
                                             <TouchableOpacity
                                                 onPress={handleUnlockPress}
                                                 style={{ backgroundColor: '#F59E0B', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } }}
                                             >
-                                                <Text style={{ fontWeight: 'bold', color: 'black', marginRight: 6 }}>🔒 Unlock Recipe</Text>
+                                                <Text style={{ fontWeight: 'bold', color: 'black', marginRight: 6 }}>
+                                                    {dailyLimitReached ? "🔒 Daily Limit Reached" : "🔒 Unlock Recipe"}
+                                                </Text>
                                             </TouchableOpacity>
                                         </View>
                                     )}

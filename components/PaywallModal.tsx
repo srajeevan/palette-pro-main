@@ -59,11 +59,11 @@ export const PaywallModal = forwardRef<BottomSheetModal, PaywallModalProps>(({ o
         }
     };
 
-    // Features List - Updated for Catchiness
+    // Features List - Updated for Freemium Model
     const features = [
-        { icon: '🎨', title: 'Mixing Recipes', desc: 'Don\'t just guess. Mix with precision.' },
-        { icon: '👁️', title: 'Tonal Analysis', desc: 'See values like the Old Masters.' },
-        { icon: '💾', title: 'Unlimited Library', desc: 'Your digital studio, always with you.' },
+        { icon: '🎨', title: 'Unlimited Mixing Recipes', desc: 'Break the daily limit. Mix as much as you want.' },
+        { icon: '💾', title: 'Unlimited Library', desc: 'Save unlimited palettes. No 3-palette cap.' },
+        { icon: '⚡️', title: 'Uninterrupted Flow', desc: 'Remove all daily limits. Create without boundaries.' },
     ];
 
     const getPriceString = (type: 'ANNUAL' | 'MONTHLY') => {

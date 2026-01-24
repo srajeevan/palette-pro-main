@@ -1,12 +1,14 @@
 import { usePro } from '@/context/ProContext';
 import { getContrastColor, hexToRgb } from '@/utils/colorUtils';
 import { calculateMix, MixResult } from '@/utils/mixingEngine';
+import { checkDailyMixingLimit, incrementDailyMixingCount } from '@/utils/usage';
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
 import { Info, Lock, X } from 'lucide-react-native';
 import React, { forwardRef, useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import { AppText } from './AppText';
+import { PaywallModal } from './PaywallModal';
 
 export type MixingRecipeBottomSheetProps = {
     targetColor: string | null;
@@ -21,16 +23,42 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
         const [isCalculating, setIsCalculating] = useState(false);
         const progress = useSharedValue(0);
 
+        // Daily Limit State
+        const [isViewAllowed, setIsViewAllowed] = useState(false);
+        const [dailyLimitReached, setDailyLimitReached] = useState(false);
+        const paywallRef = React.useRef<BottomSheetModal>(null);
+
         useEffect(() => {
             if (targetColor) {
+                // Reset State
+                setIsViewAllowed(false);
+                setDailyLimitReached(false);
                 setIsCalculating(true);
                 progress.value = 0; // Reset progress
                 const rgb = hexToRgb(targetColor);
                 if (rgb) {
                     // Small delay to allow UI to update
-                    setTimeout(() => {
+                    // Small delay to allow UI to update
+                    setTimeout(async () => {
                         const result = calculateMix(rgb);
                         setMixResult(result);
+
+                        // Check Permissions (Pro or Daily Limit)
+                        if (isPro) {
+                            setIsViewAllowed(true);
+                        } else {
+                            const { allowed } = await checkDailyMixingLimit('palette');
+                            if (allowed) {
+                                setIsViewAllowed(true);
+                                const newCount = await incrementDailyMixingCount('palette');
+                                // Optional: Show toast on usage?
+                                // showToast(`Free Mix: ${newCount}/10 used`);
+                            } else {
+                                setDailyLimitReached(true);
+                                setIsViewAllowed(false);
+                            }
+                        }
+
                         setIsCalculating(false);
 
                         // Animate progress bar
@@ -154,7 +182,7 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                                     }}
                                 >
                                     {/* Recipe Text */}
-                                    {isPro ? (
+                                    {isViewAllowed ? (
                                         <AppText
                                             style={{
                                                 fontFamily: 'PlayfairDisplay_400Regular',
@@ -166,14 +194,18 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                                             {mixResult?.recipe || 'No recipe available'}
                                         </AppText>
                                     ) : (
-                                        <TouchableOpacity activeOpacity={0.9} onPress={onUnlock} style={{ alignItems: 'center', justifyContent: 'center' }}>
+                                        <TouchableOpacity
+                                            activeOpacity={0.9}
+                                            onPress={() => paywallRef.current?.present()}
+                                            style={{ alignItems: 'center', justifyContent: 'center' }}
+                                        >
                                             <View style={{ position: 'absolute', zIndex: 10, alignItems: 'center' }}>
                                                 <Lock size={24} color="#F59E0B" fill="#F59E0B" />
                                                 <AppText style={{ color: '#E4E4E7', fontFamily: 'Inter_700Bold', marginTop: 8, fontSize: 16 }}>
-                                                    Unlock Mixing Recipe
+                                                    {dailyLimitReached ? "Daily Limit Reached" : "Unlock Mixing Recipe"}
                                                 </AppText>
                                                 <AppText style={{ color: '#A1A1AA', fontSize: 13, marginTop: 4 }}>
-                                                    Pro users get exact paint mixtures
+                                                    {dailyLimitReached ? "Upgrade for unlimited mixes" : "Pro users get exact paint mixtures"}
                                                 </AppText>
                                             </View>
                                             <AppText
@@ -233,6 +265,7 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                         </>
                     )}
                 </BottomSheetView>
+                <PaywallModal ref={paywallRef} />
             </BottomSheetModal>
         );
     }
