@@ -3,10 +3,6 @@ import { showToast } from '@/utils/toast';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 
-// Max dimension (long edge) after resize. Balances quality vs storage/upload cost.
-// A 4000x3000 iPhone photo → 1600x1200 at q=0.8 is typically ~200-400 KB.
-const MAX_IMAGE_EDGE = 1600;
-
 export const useImagePicker = () => {
     const { setImage, setUploading } = useProjectStore();
 
@@ -29,42 +25,32 @@ export const useImagePicker = () => {
     };
 
     /**
-     * Convert to JPEG + resize to MAX_IMAGE_EDGE on the long side.
+     * Convert to JPEG at full quality, no resize.
      *
-     * Note: we NO LONGER upload here. The image is kept as a local file until
-     * the user explicitly saves the palette. This prevents orphaned uploads
-     * from users who pick an image but never save.
+     * We convert to JPEG for format consistency (iPhones default to HEIC,
+     * which not all platforms can render), but we do NOT compress or resize
+     * because this app's core functionality depends on image quality and
+     * accurate color data.
+     *
+     * Upload happens later, on save — not here. This prevents orphaned
+     * uploads from users who pick an image but never save.
      */
     const processImage = async (uri: string, width: number, height: number) => {
-        setUploading(true); // Show spinner during conversion
+        setUploading(true);
         try {
-            // Calculate resize target so the longer edge = MAX_IMAGE_EDGE.
-            // Only shrink, never upscale.
-            const longEdge = Math.max(width, height);
-            const scale = longEdge > MAX_IMAGE_EDGE ? MAX_IMAGE_EDGE / longEdge : 1;
-            const targetWidth = Math.round(width * scale);
-            const targetHeight = Math.round(height * scale);
-
-            const actions = scale < 1
-                ? [{ resize: { width: targetWidth, height: targetHeight } }]
-                : [];
-
-            console.log(
-                `🖼️ Processing image: ${width}x${height} → ${targetWidth}x${targetHeight} (scale ${scale.toFixed(2)})`,
-            );
+            console.log(`🖼️ Processing image: ${width}x${height} (JPEG conversion, no resize)`);
 
             const manipResult = await manipulateAsync(
                 uri,
-                actions,
-                { compress: 0.8, format: SaveFormat.JPEG },
+                [], // No resize or transform — keep original dimensions
+                { compress: 1, format: SaveFormat.JPEG },
             );
             const jpegUri = manipResult.uri;
             console.log('✅ Conversion done:', jpegUri);
 
-            // Store LOCAL URI only. Upload happens later, on save.
             setImage(jpegUri, {
-                width: manipResult.width ?? targetWidth,
-                height: manipResult.height ?? targetHeight,
+                width: manipResult.width ?? width,
+                height: manipResult.height ?? height,
             });
             return jpegUri;
         } catch (error) {

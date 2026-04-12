@@ -8,7 +8,9 @@
     "ios": "npx expo run:ios",
     "web": "expo start --web",
     "mirror:r2": "tsx scripts/mirror-supabase-to-r2.ts",
-    "mirror:r2:dry": "tsx scripts/mirror-supabase-to-r2.ts --dry"
+    "mirror:r2:dry": "tsx scripts/mirror-supabase-to-r2.ts --dry",
+    "cleanup:supabase": "tsx scripts/cleanup-supabase-orphans.ts --delete",
+    "cleanup:supabase:dry": "tsx scripts/cleanup-supabase-orphans.ts --dry"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
