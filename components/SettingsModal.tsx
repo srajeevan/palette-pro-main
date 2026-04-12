@@ -10,7 +10,7 @@ import { useRouter } from 'expo-router';
 import { Crown, HelpCircle, Lock, LogOut, Mail, Zap } from 'lucide-react-native';
 import React from 'react';
 import { Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, SlideInUp } from 'react-native-reanimated';
+import Animated, { Easing, FadeIn, SlideInUp } from 'react-native-reanimated';
 
 interface SettingsModalProps {
     visible: boolean;
@@ -97,7 +97,7 @@ export const SettingsModal = ({ visible, onClose, onManageSubscription }: Settin
 
                 {/* Bottom Sheet */}
                 <Animated.View
-                    entering={SlideInUp.springify().damping(30).stiffness(300)}
+                    entering={SlideInUp.duration(350).easing(Easing.out(Easing.cubic))}
                     style={styles.sheet}
                 >
                     {/* Header */}

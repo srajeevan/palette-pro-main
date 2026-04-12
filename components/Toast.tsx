@@ -1,7 +1,9 @@
 import { AppText } from '@/components/AppText';
-import React, { forwardRef, useCallback, useImperativeHandle, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
+    cancelAnimation,
+    runOnJS,
     useAnimatedStyle,
     useSharedValue,
     withDelay,
@@ -19,14 +21,30 @@ export const Toast = forwardRef<ToastRef>((props, ref) => {
     const insets = useSafeAreaInsets();
     const translateY = useSharedValue(-100);
     const [message, setMessage] = useState('');
+    const [visible, setVisible] = useState(false);
+    const hideTimer = useRef<ReturnType<typeof setTimeout>>();
+
+    const hide = useCallback(() => {
+        cancelAnimation(translateY);
+        translateY.value = withTiming(-100, { duration: 200 }, (finished) => {
+            if (finished) runOnJS(setVisible)(false);
+        });
+    }, []);
 
     const show = useCallback((msg: string, duration: number = 2000) => {
+        // Cancel any in-flight animation and timer
+        cancelAnimation(translateY);
+        if (hideTimer.current) clearTimeout(hideTimer.current);
+
         setMessage(msg);
-        translateY.value = withSequence(
-            withSpring(insets.top + 10, { damping: 12 }),
-            withDelay(duration, withTiming(-100, { duration: 300 }))
-        );
-    }, [insets.top]);
+        setVisible(true);
+
+        // Animate in
+        translateY.value = withSpring(insets.top + 10, { damping: 14, stiffness: 150 });
+
+        // Schedule auto-hide
+        hideTimer.current = setTimeout(hide, duration);
+    }, [insets.top, hide]);
 
     useImperativeHandle(ref, () => ({
         show
@@ -39,10 +57,15 @@ export const Toast = forwardRef<ToastRef>((props, ref) => {
     });
 
     return (
-        <Animated.View style={[styles.container, animatedStyle]}>
-            <View style={styles.content}>
-                <AppText style={styles.text}>{message}</AppText>
-            </View>
+        <Animated.View
+            style={[styles.container, animatedStyle]}
+            pointerEvents={visible ? 'auto' : 'none'}
+        >
+            <Pressable onPress={hide}>
+                <View style={styles.content}>
+                    <AppText style={styles.text}>{message}</AppText>
+                </View>
+            </Pressable>
         </Animated.View>
     );
 });
@@ -55,7 +78,7 @@ const styles = StyleSheet.create({
         right: 0,
         alignItems: 'center',
         zIndex: 9999,
-        // Ensure it doesn't block touches when hidden (though translateY moves it offscreen)
+        pointerEvents: 'box-none',
     },
     content: {
         backgroundColor: '#161618',

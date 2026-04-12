@@ -1,6 +1,7 @@
 import { usePro } from '@/context/ProContext';
 import { getContrastColor, hexToRgb } from '@/utils/colorUtils';
 import { calculateMix, MixResult } from '@/utils/mixingEngine';
+import { showToast } from '@/utils/toast';
 import { checkDailyMixingLimit, incrementDailyMixingCount } from '@/utils/usage';
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
 import { Info, Lock, X } from 'lucide-react-native';
@@ -51,8 +52,11 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                             if (allowed) {
                                 setIsViewAllowed(true);
                                 const newCount = await incrementDailyMixingCount('palette');
-                                // Optional: Show toast on usage?
-                                // showToast(`Free Mix: ${newCount}/10 used`);
+                                if (newCount === 5) {
+                                    showToast("Halfway there! 5 of 10 free mixes used today. 🎨");
+                                } else if (newCount === 8) {
+                                    showToast("Almost out! 2 free mixes left today. ⏳");
+                                }
                             } else {
                                 setDailyLimitReached(true);
                                 setIsViewAllowed(false);
