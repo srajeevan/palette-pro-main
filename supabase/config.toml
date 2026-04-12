@@ -1,0 +1,14 @@
+project_id = "jntjccraoixuschezyyk"
+
+[functions.get-r2-upload-url]
+# Disable gateway JWT verification. The function itself verifies auth via
+# supabase.auth.getUser() using the caller's Authorization header, so the
+# gateway-level check is redundant and was rejecting valid asymmetric-key
+# JWTs issued by this project.
+verify_jwt = false
+
+[functions.delete-palette-image]
+verify_jwt = false
+
+[functions.delete-user-storage]
+verify_jwt = false

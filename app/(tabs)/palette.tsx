@@ -9,7 +9,7 @@ import { UploadPlaceholderView } from '@/components/UploadPlaceholderView';
 import { useAuth } from '@/context/AuthContext';
 import { usePro } from '@/context/ProContext';
 import { getPaletteCount, savePalette } from '@/services/paletteService';
-import { uploadReferenceImage } from '@/services/storageService';
+import { uploadReferenceImageToR2 } from '@/services/storageService';
 import { useImagePicker } from '@/services/useImagePicker';
 import { useProjectStore } from '@/store/useProjectStore';
 import { safeHaptics } from '@/utils/haptics';
@@ -216,20 +216,24 @@ export default function PaletteScreen() {
 
                         setIsSaving(true);
 
-                        // 1. Upload Image to Supabase Storage
+                        // 1. Upload Image to Cloudflare R2 (only on save — no orphans)
                         let uploadedImageUrl = imageUri;
                         if (imageUri) {
-                            // Check if it's already a remote URL (don't re-upload)
+                            // Already a remote URL (user re-opened an existing palette's image)
                             if (imageUri.startsWith('http')) {
                                 console.log('☁️ Image is already remote, skipping upload.');
                                 uploadedImageUrl = imageUri;
-                            } else if (user.id) {
-                                // It's a local file, upload it
-                                console.log('⬆️ Uploading local image to cloud...');
-                                const publicUrl = await uploadReferenceImage(imageUri, user.id);
+                            } else {
+                                // Local JPEG → upload to R2 via presigned URL
+                                console.log('⬆️ Uploading local image to R2...');
+                                const publicUrl = await uploadReferenceImageToR2(imageUri);
                                 if (publicUrl) {
                                     uploadedImageUrl = publicUrl;
-                                    console.log('✅ Upload success:', publicUrl);
+                                    console.log('✅ R2 upload success:', publicUrl);
+                                } else {
+                                    // Upload failed — abort save so user isn't left with a broken row
+                                    setIsSaving(false);
+                                    return;
                                 }
                             }
                         }

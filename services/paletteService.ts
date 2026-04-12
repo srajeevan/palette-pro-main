@@ -88,10 +88,37 @@ export async function loadPalettes(): Promise<{ data: Palette[] | null; error: E
 }
 
 /**
- * Delete a palette by ID
+ * Delete a palette by ID.
+ *
+ * This also cleans up the associated reference image from both R2 and
+ * Supabase Storage (whichever actually hold it). The storage cleanup
+ * happens AFTER the DB row is deleted — if it fails, the palette is
+ * still gone from the user's perspective, and the image becomes an
+ * orphan we can clean up later. DB-first ordering guarantees a stuck
+ * cleanup call can never block the user from deleting their palette.
  */
 export async function deletePalette(paletteId: string): Promise<{ error: Error | null }> {
     try {
+        // 1. Fetch image_url BEFORE deleting, so we know what to clean up.
+        //    We intentionally do not fail the whole operation if this read
+        //    errors — we just skip cleanup and still try the delete.
+        let imageUrl: string | null = null;
+        try {
+            const { data, error: fetchErr } = await supabase
+                .from('palettes')
+                .select('image_url')
+                .eq('id', paletteId)
+                .maybeSingle();
+            if (fetchErr) {
+                console.warn('[deletePalette] could not read image_url:', fetchErr);
+            } else {
+                imageUrl = data?.image_url ?? null;
+            }
+        } catch (e) {
+            console.warn('[deletePalette] image_url prefetch exception:', e);
+        }
+
+        // 2. Delete the DB row.
         const { error } = await supabase
             .from('palettes')
             .delete()
@@ -100,6 +127,22 @@ export async function deletePalette(paletteId: string): Promise<{ error: Error |
         if (error) {
             console.error('Error deleting palette:', error);
             return { error: new Error(error.message) };
+        }
+
+        // 3. Fire-and-forget storage cleanup. Never blocks the caller.
+        if (imageUrl) {
+            supabase.functions
+                .invoke('delete-palette-image', { body: { imageUrl } })
+                .then(({ data, error: fnErr }) => {
+                    if (fnErr) {
+                        console.warn('[deletePalette] image cleanup failed:', fnErr);
+                    } else {
+                        console.log('[deletePalette] image cleanup:', data);
+                    }
+                })
+                .catch((e) => {
+                    console.warn('[deletePalette] image cleanup threw:', e);
+                });
         }
 
         return { error: null };

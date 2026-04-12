@@ -82,11 +82,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const deleteAccount = async () => {
         try {
-            // 1. Call Supabase RPC to delete user data & auth
+            // 1. Clean up the user's reference images from R2 + Supabase Storage
+            //    BEFORE deleting the auth user — once delete_user runs, the JWT
+            //    is invalid and we can no longer authorize the cleanup call.
+            //    Failures here are logged but do NOT block account deletion;
+            //    the user has asked to leave and we must honour that.
+            try {
+                const { data, error: cleanupErr } = await supabase.functions.invoke(
+                    'delete-user-storage',
+                    { body: {} },
+                );
+                if (cleanupErr) {
+                    console.warn('[deleteAccount] storage cleanup failed:', cleanupErr);
+                } else {
+                    console.log('[deleteAccount] storage cleanup:', data);
+                }
+            } catch (e) {
+                console.warn('[deleteAccount] storage cleanup threw:', e);
+            }
+
+            // 2. Call Supabase RPC to delete user data & auth
             const { error } = await supabase.rpc('delete_user');
             if (error) throw error;
 
-            // 2. Sign Out locally to clean up state
+            // 3. Sign Out locally to clean up state
             await signOut();
             return { error: null };
         } catch (error: any) {

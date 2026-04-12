@@ -40,3 +40,9 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# database/storage backups (contain user data)
+backups/
+
+# supabase CLI local state
+supabase/.temp/

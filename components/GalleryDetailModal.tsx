@@ -3,7 +3,7 @@ import { GalleryItem } from '@/components/GalleryCard';
 import { PaletteSwatch } from '@/components/PaletteSwatch';
 import { BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
 import { Image } from 'expo-image';
-import { Share, X } from 'lucide-react-native';
+import { Share, Trash2, X } from 'lucide-react-native';
 import React, { forwardRef, useMemo } from 'react';
 import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -13,10 +13,12 @@ interface GalleryDetailModalProps {
     onClose: () => void;
     onShare: () => void;
     onOpenInStudio: (item: GalleryItem) => void;
+    onDelete: (item: GalleryItem) => void;
+    canDelete?: boolean;
 }
 
 export const GalleryDetailModal = forwardRef<BottomSheetModal, GalleryDetailModalProps>(
-    ({ item, onClose, onShare, onOpenInStudio }, ref) => {
+    ({ item, onClose, onShare, onOpenInStudio, onDelete, canDelete = false }, ref) => {
         const snapPoints = useMemo(() => ['85%'], []);
         const { width } = Dimensions.get('window');
 
@@ -39,9 +41,21 @@ export const GalleryDetailModal = forwardRef<BottomSheetModal, GalleryDetailModa
                             <AppText style={styles.title}>Palette Details</AppText>
                             <AppText style={styles.date}>Created {new Date().toLocaleDateString()}</AppText>
                         </View>
-                        <TouchableOpacity onPress={() => (ref as any).current?.dismiss()} style={styles.closeButton}>
-                            <X size={20} color="#57534e" />
-                        </TouchableOpacity>
+                        <View style={styles.headerActions}>
+                            {canDelete && (
+                                <TouchableOpacity
+                                    onPress={() => onDelete(item)}
+                                    style={styles.deleteButton}
+                                    activeOpacity={0.7}
+                                    accessibilityLabel="Delete palette"
+                                >
+                                    <Trash2 size={18} color="#DC2626" />
+                                </TouchableOpacity>
+                            )}
+                            <TouchableOpacity onPress={() => (ref as any).current?.dismiss()} style={styles.closeButton}>
+                                <X size={20} color="#57534e" />
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
                     {/* Image */}
@@ -118,11 +132,24 @@ const styles = StyleSheet.create({
         color: '#78716c',
         marginTop: 4,
     },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
     closeButton: {
         width: 36,
         height: 36,
         borderRadius: 18,
         backgroundColor: '#e7e5e4',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    deleteButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#FEE2E2',
         alignItems: 'center',
         justifyContent: 'center',
     },

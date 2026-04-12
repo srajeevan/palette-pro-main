@@ -1,13 +1,14 @@
-import { useAuth } from '@/context/AuthContext';
 import { useProjectStore } from '@/store/useProjectStore';
 import { showToast } from '@/utils/toast';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
-import { uploadReferenceImage } from './storageService';
+
+// Max dimension (long edge) after resize. Balances quality vs storage/upload cost.
+// A 4000x3000 iPhone photo → 1600x1200 at q=0.8 is typically ~200-400 KB.
+const MAX_IMAGE_EDGE = 1600;
 
 export const useImagePicker = () => {
     const { setImage, setUploading } = useProjectStore();
-    const { user } = useAuth();
 
     const verifyPermissions = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -27,37 +28,48 @@ export const useImagePicker = () => {
         return true;
     };
 
+    /**
+     * Convert to JPEG + resize to MAX_IMAGE_EDGE on the long side.
+     *
+     * Note: we NO LONGER upload here. The image is kept as a local file until
+     * the user explicitly saves the palette. This prevents orphaned uploads
+     * from users who pick an image but never save.
+     */
     const processImage = async (uri: string, width: number, height: number) => {
-        setUploading(true); // Show loading spinner during conversion + upload
+        setUploading(true); // Show spinner during conversion
         try {
-            // 1. Convert to JPEG (fixes HEIC/Skia crash)
-            console.log('🖼️ Converting image to JPEG...');
+            // Calculate resize target so the longer edge = MAX_IMAGE_EDGE.
+            // Only shrink, never upscale.
+            const longEdge = Math.max(width, height);
+            const scale = longEdge > MAX_IMAGE_EDGE ? MAX_IMAGE_EDGE / longEdge : 1;
+            const targetWidth = Math.round(width * scale);
+            const targetHeight = Math.round(height * scale);
+
+            const actions = scale < 1
+                ? [{ resize: { width: targetWidth, height: targetHeight } }]
+                : [];
+
+            console.log(
+                `🖼️ Processing image: ${width}x${height} → ${targetWidth}x${targetHeight} (scale ${scale.toFixed(2)})`,
+            );
+
             const manipResult = await manipulateAsync(
                 uri,
-                [], // No actions (resize/crop), just format conversion
-                { compress: 0.8, format: SaveFormat.JPEG }
+                actions,
+                { compress: 0.8, format: SaveFormat.JPEG },
             );
             const jpegUri = manipResult.uri;
             console.log('✅ Conversion done:', jpegUri);
 
-            // 2. Upload if user is logged in
-            if (user) {
-                const publicUrl = await uploadReferenceImage(jpegUri, user.id);
-
-                if (publicUrl) {
-                    setImage(publicUrl, { width, height });
-                    return publicUrl;
-                }
-            }
-
-            // Fallback (Guest or Upload Failed): Use the converted local JPEG
-            setImage(jpegUri, { width, height });
+            // Store LOCAL URI only. Upload happens later, on save.
+            setImage(jpegUri, {
+                width: manipResult.width ?? targetWidth,
+                height: manipResult.height ?? targetHeight,
+            });
             return jpegUri;
-
         } catch (error) {
             console.error('❌ Error processing image:', error);
             showToast("Failed to process image. Please try again.");
-            // Last resort fallback
             setImage(uri, { width, height });
             return uri;
         } finally {
@@ -71,9 +83,9 @@ export const useImagePicker = () => {
 
         try {
             const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                mediaTypes: ['images'],
                 allowsEditing: false, // Disable cropping to allow full image
-                quality: 0.7,
+                quality: 1, // Full quality from picker; we compress in processImage
             });
 
             if (!result.canceled && result.assets[0]) {
@@ -93,8 +105,9 @@ export const useImagePicker = () => {
 
         try {
             const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ['images'],
                 allowsEditing: false,
-                quality: 0.7,
+                quality: 1, // Full quality from camera; we compress in processImage
             });
 
             if (!result.canceled && result.assets[0]) {

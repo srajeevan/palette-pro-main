@@ -5,11 +5,13 @@ import { GuestSyncCard } from '@/components/GuestSyncCard';
 import { SceneTransition } from '@/components/SceneTransition';
 import { ShareCardGenerator, ShareCardGeneratorRef } from '@/components/ShareCardGenerator';
 import { useAuth } from '@/context/AuthContext';
-import { loadPalettes } from '@/services/paletteService';
+import { usePro } from '@/context/ProContext';
+import { deletePalette, loadPalettes } from '@/services/paletteService';
+import { showToast } from '@/utils/toast';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Palette, Settings } from 'lucide-react-native';
 import React, { useCallback, useRef, useState } from 'react';
-import { FlatList, Share as NativeShare, Pressable, View } from 'react-native';
+import { Alert, FlatList, Share as NativeShare, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GalleryDetailModal } from '@/components/GalleryDetailModal';
@@ -20,6 +22,7 @@ import { PaywallModal } from '@/components/PaywallModal';
 
 export default function ProfileScreen() {
     const { user, loading, isGuest, signOut } = useAuth();
+    const { isPro } = usePro();
     const router = useRouter();
 
     // State
@@ -93,6 +96,37 @@ export default function ProfileScreen() {
     const handleCardPress = (item: GalleryItem) => {
         setSelectedItem(item);
         detailModalRef.current?.present();
+    };
+
+    const handleDeletePalette = (item: GalleryItem) => {
+        Alert.alert(
+            'Delete Palette?',
+            'This will permanently delete the palette and its reference image. This cannot be undone.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        // Optimistically remove from the grid so the UI feels instant.
+                        const previous = galleryItems;
+                        setGalleryItems((list) => list.filter((i) => i.id !== item.id));
+                        setSelectedItem(null);
+                        detailModalRef.current?.dismiss();
+
+                        const { error } = await deletePalette(item.id);
+                        if (error) {
+                            // Roll back on failure.
+                            console.error('❌ Profile: delete failed:', error);
+                            setGalleryItems(previous);
+                            showToast('Could not delete palette. Please try again.');
+                            return;
+                        }
+                        showToast('Palette deleted.');
+                    },
+                },
+            ],
+        );
     };
 
     const handleShare = async () => {
@@ -199,6 +233,8 @@ export default function ProfileScreen() {
                     onClose={() => setSelectedItem(null)}
                     onShare={handleShare}
                     onOpenInStudio={handleOpenInStudio}
+                    onDelete={handleDeletePalette}
+                    canDelete={isPro}
                 />
 
                 {/* Settings Modal */}
