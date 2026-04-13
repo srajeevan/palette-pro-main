@@ -4,12 +4,13 @@ import { SettingsRow } from '@/components/SettingsRow';
 import { useAuth } from '@/context/AuthContext';
 import { usePro } from '@/context/ProContext';
 import { useUpgradeFlow } from '@/hooks/useUpgradeFlow';
+import { useOnboardingStore } from '@/store/useOnboardingStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { showToast } from '@/utils/toast';
 import { useRouter } from 'expo-router';
 import { Crown, HelpCircle, Lock, LogOut, Mail, Zap } from 'lucide-react-native';
-import React from 'react';
-import { Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { Easing, FadeIn, SlideInUp } from 'react-native-reanimated';
 
 interface SettingsModalProps {
@@ -23,7 +24,9 @@ export const SettingsModal = ({ visible, onClose, onManageSubscription }: Settin
     const { isPro } = usePro();
     const router = useRouter();
     const { hapticsEnabled, setHapticsEnabled } = useSettingsStore();
+    const resetOnboarding = useOnboardingStore((s) => s.resetOnboarding);
 
+    const [isDeleting, setIsDeleting] = useState(false);
     const { triggerUpgradeFlow } = useUpgradeFlow();
 
     const handleUpgradePress = () => {
@@ -64,12 +67,15 @@ export const SettingsModal = ({ visible, onClose, onManageSubscription }: Settin
                     text: "Delete",
                     style: "destructive",
                     onPress: async () => {
+                        setIsDeleting(true);
                         const { error } = await deleteAccount();
+                        setIsDeleting(false);
                         if (error) {
                             Alert.alert('Error', 'Failed to delete account. Please try again or contact support.');
                         } else {
+                            resetOnboarding();
                             onClose();
-                            showToast("Account deleted successfully.");
+                            showToast("Your account has been deleted.");
                         }
                     }
                 }
@@ -189,6 +195,14 @@ export const SettingsModal = ({ visible, onClose, onManageSubscription }: Settin
                         {/* Bottom Spacer for SafeArea */}
                         <View style={{ height: 40 }} />
                     </ScrollView>
+
+                    {/* Deleting overlay */}
+                    {isDeleting && (
+                        <View style={styles.deletingOverlay}>
+                            <ActivityIndicator size="large" color="#FFFFFF" />
+                            <AppText style={styles.deletingText}>Deleting account...</AppText>
+                        </View>
+                    )}
                 </Animated.View>
             </View>
         </Modal>
@@ -253,5 +267,19 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         marginLeft: 4,
         letterSpacing: 0.5,
-    }
+    },
+    deletingOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 16,
+    },
+    deletingText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontFamily: 'Inter_500Medium',
+    },
 });
