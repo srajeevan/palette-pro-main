@@ -1,15 +1,16 @@
 import { usePro } from '@/context/ProContext';
+import { trackRecipeViewed } from '@/services/analytics';
 import { getContrastColor, hexToRgb } from '@/utils/colorUtils';
 import { calculateMix, MixResult } from '@/utils/mixingEngine';
 import { showToast } from '@/utils/toast';
 import { checkDailyMixingLimit, incrementDailyMixingCount } from '@/utils/usage';
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
-import { Info, Lock, X } from 'lucide-react-native';
+import { Info, X } from 'lucide-react-native';
 import React, { forwardRef, useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import { AppText } from './AppText';
-import { PaywallModal } from './PaywallModal';
+import { RecipeLimitOverlay } from './RecipeLimitOverlay';
 
 export type MixingRecipeBottomSheetProps = {
     targetColor: string | null;
@@ -27,7 +28,7 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
         // Daily Limit State
         const [isViewAllowed, setIsViewAllowed] = useState(false);
         const [dailyLimitReached, setDailyLimitReached] = useState(false);
-        const paywallRef = React.useRef<BottomSheetModal>(null);
+        const [showLimitOverlay, setShowLimitOverlay] = useState(false);
 
         useEffect(() => {
             if (targetColor) {
@@ -47,11 +48,13 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                         // Check Permissions (Pro or Daily Limit)
                         if (isPro) {
                             setIsViewAllowed(true);
+                            trackRecipeViewed(-1); // -1 = unlimited (pro)
                         } else {
                             const { allowed } = await checkDailyMixingLimit('palette');
                             if (allowed) {
                                 setIsViewAllowed(true);
                                 const newCount = await incrementDailyMixingCount('palette');
+                                trackRecipeViewed(10 - newCount);
                                 if (newCount === 5) {
                                     showToast("Halfway there! 5 of 10 free mixes used today. 🎨");
                                 } else if (newCount === 8) {
@@ -60,6 +63,9 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                             } else {
                                 setDailyLimitReached(true);
                                 setIsViewAllowed(false);
+                                // Dismiss sheet and show limit overlay
+                                (ref as any)?.current?.dismiss();
+                                setTimeout(() => setShowLimitOverlay(true), 300);
                             }
                         }
 
@@ -198,34 +204,17 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                                             {mixResult?.recipe || 'No recipe available'}
                                         </AppText>
                                     ) : (
-                                        <TouchableOpacity
-                                            activeOpacity={0.9}
-                                            onPress={() => paywallRef.current?.present()}
-                                            style={{ alignItems: 'center', justifyContent: 'center' }}
+                                        <AppText
+                                            style={{
+                                                fontFamily: 'Inter_400Regular',
+                                                fontSize: 14,
+                                                color: '#71717A',
+                                                textAlign: 'center',
+                                                paddingVertical: 12,
+                                            }}
                                         >
-                                            <View style={{ position: 'absolute', zIndex: 10, alignItems: 'center' }}>
-                                                <Lock size={24} color="#F59E0B" fill="#F59E0B" />
-                                                <AppText style={{ color: '#E4E4E7', fontFamily: 'Inter_700Bold', marginTop: 8, fontSize: 16 }}>
-                                                    {dailyLimitReached ? "Daily Limit Reached" : "Unlock Mixing Recipe"}
-                                                </AppText>
-                                                <AppText style={{ color: '#A1A1AA', fontSize: 13, marginTop: 4 }}>
-                                                    {dailyLimitReached ? "Upgrade for unlimited mixes" : "Pro users get exact paint mixtures"}
-                                                </AppText>
-                                            </View>
-                                            <AppText
-                                                style={{
-                                                    fontFamily: 'PlayfairDisplay_400Regular',
-                                                    fontSize: 20,
-                                                    color: '#E5E5E5',
-                                                    lineHeight: 30,
-                                                    opacity: 0.15, // Heavily dimmed to verify blur effect visually
-                                                    textAlign: 'center'
-                                                }}
-                                                className="blur-sm" // Native wind blur if available, otherwise rely on opacity+overlay
-                                            >
-                                                {"Titanium White + 2 parts Ultramarine Blue + Touch of Burnt Umber..."}
-                                            </AppText>
-                                        </TouchableOpacity>
+                                            Recipe locked — daily limit reached
+                                        </AppText>
                                     )}
                                 </View>
                             </Animated.View>
@@ -269,7 +258,10 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                         </>
                     )}
                 </BottomSheetView>
-                <PaywallModal ref={paywallRef} />
+                <RecipeLimitOverlay
+                    visible={showLimitOverlay}
+                    onDismiss={() => setShowLimitOverlay(false)}
+                />
             </BottomSheetModal>
         );
     }
