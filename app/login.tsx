@@ -99,11 +99,7 @@ export default function LoginScreen() {
                 });
                 console.log('Sign In Result:', { data, error });
                 if (error) throw error;
-
-                // Force navigation on success
-                // AuthContext listener is async, so we manually push to tabs here 
-                // to avoid waiting for the state update to trigger layout navigation
-                router.replace('/(tabs)');
+                // Navigation handled by _layout.tsx redirect logic
             }
         } catch (error: any) {
             console.error('Auth Error:', error);
@@ -325,7 +321,7 @@ export default function LoginScreen() {
                             onPress={() => {
                                 resetProject();
                                 signInAsGuest();
-                                router.replace('/(tabs)');
+                                // Navigation handled by _layout.tsx redirect logic
                             }}
                             variant="outline"
                             className="w-full border-[#28282A] bg-[#1C1C1E]"
