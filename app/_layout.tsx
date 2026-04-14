@@ -90,14 +90,6 @@ function RootLayoutNav() {
 import { Toast } from '@/components/Toast';
 import { useOnboardingStore } from '@/store/useOnboardingStore';
 import { toastRef } from '@/utils/toast';
-// Lazy import — native module may not be available until dev client rebuild
-let Notifications: typeof import('expo-notifications') | null = null;
-try {
-  Notifications = require('expo-notifications');
-} catch (e) {
-  // expo-notifications native module not available yet
-}
-
 export { toastRef }; // Optional re-export if needed, but better to import from utils
 
 function RootLayoutNavContent() {
@@ -125,18 +117,6 @@ function RootLayoutNavContent() {
       identifyCrashUser(session.user.id, session.user.email, isPro);
     }
   }, [session?.user?.id, isPro]);
-
-  // Handle notification taps — deep link to palette screen
-  useEffect(() => {
-    if (!Notifications) return;
-    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      const type = response.notification.request.content.data?.type;
-      if (type === 'unsaved_palette' || type === 'streak_reminder' || type === 'inspiration') {
-        router.push('/(tabs)/palette');
-      }
-    });
-    return () => subscription.remove();
-  }, []);
 
   // Auto-complete onboarding for existing users who update the app
   useEffect(() => {

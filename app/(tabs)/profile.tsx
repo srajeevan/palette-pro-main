@@ -14,7 +14,9 @@ import React, { useCallback, useRef, useState } from 'react';
 import { Alert, FlatList, Share as NativeShare, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { FeedbackModal } from '@/components/FeedbackModal';
 import { GalleryDetailModal } from '@/components/GalleryDetailModal';
+import { IdeaBoardModal } from '@/components/IdeaBoardModal';
 import { SettingsModal } from '@/components/SettingsModal';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 
@@ -30,6 +32,8 @@ export default function ProfileScreen() {
     const [loadingPalettes, setLoadingPalettes] = useState(false);
     const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
     const [showSettings, setShowSettings] = useState(false);
+    const [showFeedback, setShowFeedback] = useState(false);
+    const [showIdeaBoard, setShowIdeaBoard] = useState(false);
     const detailModalRef = useRef<BottomSheetModal>(null);
     const paywallRef = useRef<BottomSheetModal>(null);
     const shareGeneratorRef = useRef<ShareCardGeneratorRef>(null);
@@ -243,11 +247,30 @@ export default function ProfileScreen() {
                     onClose={() => setShowSettings(false)}
                     onManageSubscription={() => {
                         setShowSettings(false);
-                        // Small delay to allow modal to close smoothly before opening paywall
                         setTimeout(() => {
                             paywallRef.current?.present();
                         }, 300);
                     }}
+                    onOpenFeedback={() => {
+                        setShowSettings(false);
+                        setTimeout(() => setShowFeedback(true), 300);
+                    }}
+                    onOpenIdeaBoard={() => {
+                        setShowSettings(false);
+                        setTimeout(() => setShowIdeaBoard(true), 300);
+                    }}
+                />
+
+                {/* Feedback Modal */}
+                <FeedbackModal
+                    visible={showFeedback}
+                    onClose={() => setShowFeedback(false)}
+                />
+
+                {/* Idea Board Modal */}
+                <IdeaBoardModal
+                    visible={showIdeaBoard}
+                    onClose={() => setShowIdeaBoard(false)}
                 />
 
                 {/* Hidden Share Generator */}

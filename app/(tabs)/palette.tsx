@@ -13,7 +13,6 @@ import { usePro } from '@/context/ProContext';
 import { getPaletteCount, savePalette } from '@/services/paletteService';
 import { uploadReferenceImageToR2 } from '@/services/storageService';
 import { trackPaletteGenerated, trackPaletteSaved } from '@/services/analytics';
-import { cancelUnsavedPaletteReminders, scheduleUnsavedPaletteReminder } from '@/services/notificationService';
 import { useImagePicker } from '@/services/useImagePicker';
 import { useEngagementStore } from '@/store/useEngagementStore';
 import { useProjectStore } from '@/store/useProjectStore';
@@ -155,7 +154,6 @@ export default function PaletteScreen() {
 
                 // Track unsaved palette for engagement nudges
                 setUnsavedPalette();
-                scheduleUnsavedPaletteReminder();
 
                 // ⭐️ Smart Review Trigger (Generation = 1 point)
                 try {
@@ -293,7 +291,6 @@ export default function PaletteScreen() {
 
                             // Clear unsaved palette tracking
                             clearUnsavedPalette();
-                            cancelUnsavedPaletteReminders();
 
                             // Alert removed in favor of Toast below
                             showToast(`From mind to memory! "${name}" is saved. ✨`);

@@ -1,26 +1,38 @@
 import { CustomTabBar } from '@/components/CustomTabBar';
-import { NotificationPriming, useNotificationPriming } from '@/components/NotificationPriming';
 import { PromoPaywall, usePromoPaywall } from '@/components/PromoPaywall';
-import { trackScreenView } from '@/services/analytics';
-import { scheduleRetentionNotifications } from '@/services/notificationService';
+import { UpdatePromptModal, shouldShowUpdatePrompt } from '@/components/UpdatePromptModal';
+import { trackEvent, trackScreenView } from '@/services/analytics';
+import { checkForUpdate, UpdateInfo } from '@/services/appConfigService';
 import { useEngagementStore } from '@/store/useEngagementStore';
 import { Tabs, usePathname } from 'expo-router';
 import { Eye, Layers, Palette, Pipette, User } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 export default function TabLayout() {
   const { colorScheme } = useColorScheme();
   const recordActivity = useEngagementStore((s) => s.recordActivity);
-  const { showPriming, dismissPriming } = useNotificationPriming();
   const { showPromo, dismissPromo } = usePromoPaywall();
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
   const pathname = usePathname();
   const prevPathname = useRef(pathname);
 
   useEffect(() => {
     recordActivity();
-    // Reschedule retention notifications (idempotent, once per day)
-    scheduleRetentionNotifications();
+
+    // Check for app updates
+    (async () => {
+      const info = await checkForUpdate();
+      if (!info) return;
+
+      const shouldShow = await shouldShowUpdatePrompt(info);
+      if (!shouldShow) return;
+
+      setUpdateInfo(info);
+      setShowUpdatePrompt(true);
+      trackEvent('update_prompt_shown', { type: info.type });
+    })();
   }, []);
 
   // Track screen views on tab changes
@@ -73,11 +85,17 @@ export default function TabLayout() {
         />
       </Tabs>
 
-      {/* Notification permission priming (shown once, after value is experienced) */}
-      <NotificationPriming visible={showPriming} onDismiss={dismissPriming} />
-
       {/* Promo paywall for free users (after 3rd session, every 3 days max) */}
-      {!showPriming && <PromoPaywall visible={showPromo} onDismiss={dismissPromo} />}
+      <PromoPaywall visible={showPromo} onDismiss={dismissPromo} />
+
+      {/* Update prompt */}
+      {updateInfo && (
+        <UpdatePromptModal
+          visible={showUpdatePrompt}
+          updateInfo={updateInfo}
+          onDismiss={() => setShowUpdatePrompt(false)}
+        />
+      )}
     </>
   );
 }

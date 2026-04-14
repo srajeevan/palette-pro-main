@@ -115,10 +115,6 @@ export function trackStreakUpdated(currentStreak: number, longestStreak: number)
     trackEvent('streak_updated', { current_streak: currentStreak, longest_streak: longestStreak });
 }
 
-export function trackNotificationPermission(granted: boolean) {
-    trackEvent('notification_permission', { granted });
-}
-
 // ── Screen Tracking ──
 
 export function trackScreenView(screen: string) {
