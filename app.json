@@ -48,7 +48,9 @@
           "cameraPermission": "The app accesses your camera to let you take reference photos for your palette."
         }
       ],
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "expo-localization",
+      "@sentry/react-native"
     ],
     "experiments": {
       "typedRoutes": true

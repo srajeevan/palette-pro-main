@@ -5,10 +5,11 @@ interface AppTextProps extends TextProps {
 }
 
 export function AppText({ className, style, ...props }: AppTextProps) {
-    // Default to zinc-800 for primary text color and a clean sans-serif look
+    // Only apply default text-zinc-800 when no custom color class is provided
+    const hasColorClass = className && /\btext-/.test(className);
     return (
         <Text
-            className={`text-zinc-800 font-sans ${className}`}
+            className={`font-sans ${hasColorClass ? className : `text-zinc-800 ${className || ''}`}`}
             style={style}
             {...props}
         />

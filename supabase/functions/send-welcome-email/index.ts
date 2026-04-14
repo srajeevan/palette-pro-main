@@ -1,8 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-
-const PREVIEW_TEXT = "Welcome to your new digital studio.";
+import { sendEmail } from "../_shared/sendEmail.ts";
 
 const EMAIL_HTML = `
 <!DOCTYPE html>
@@ -54,19 +51,10 @@ const EMAIL_HTML = `
 `;
 
 serve(async (req) => {
-    // 1. Secret Key Check
-    if (!RESEND_API_KEY) {
-        console.error("Missing RESEND_API_KEY");
-        return new Response("Internal Server Error: Missing API Key", { status: 500 });
-    }
-
-    // 2. Parse Webhook Payload
     try {
         const payload = await req.json();
         console.log("Webhook Payload:", JSON.stringify(payload));
 
-        // Auth.users INSERT payload structure
-        // type: 'INSERT', table: 'users', schema: 'auth', record: { email: '...', ... }
         const record = payload.record;
 
         if (!record || !record.email) {
@@ -75,36 +63,20 @@ serve(async (req) => {
         }
 
         const userEmail = record.email;
-        const userName = record.raw_user_meta_data?.full_name || "Artist";
 
-        // 2.5. delay for 45 seconds to let Auth email land first
-        // (Note: Supabase Edge Functions timeout is ~60s, so keeping this under that limit)
+        // Delay 45 seconds to let Auth confirmation email land first
         console.log("Waiting 45 seconds before sending...");
         await new Promise(resolve => setTimeout(resolve, 45000));
 
-        // 3. Send Email via Resend
-        console.log(`Sending email to ${userEmail}...`);
+        console.log(`Sending welcome email to ${userEmail}...`);
 
-        const res = await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${RESEND_API_KEY}`,
-            },
-            body: JSON.stringify({
-                from: "Palette Pro <welcome@support.palettepro.app>", // Ensure this matches your verfied domain
-                to: userEmail,
-                subject: "Welcome to your Digital Studio 🎨",
-                html: EMAIL_HTML,
-            }),
+        const data = await sendEmail({
+            to: [{ email: userEmail }],
+            from: { name: "Palette Pro", email: "support@palettepro.app" },
+            replyTo: { email: "support@palettepro.app" },
+            subject: "Welcome to your Digital Studio 🎨",
+            htmlContent: EMAIL_HTML,
         });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-            console.error("Resend API Error:", data);
-            return new Response(JSON.stringify(data), { status: 400 });
-        }
 
         console.log("Email sent successfully:", data);
 
@@ -112,7 +84,6 @@ serve(async (req) => {
             headers: { "Content-Type": "application/json" },
             status: 200,
         });
-
     } catch (error) {
         console.error("Function Error:", error);
         return new Response(JSON.stringify({ error: error.message }), { status: 400 });

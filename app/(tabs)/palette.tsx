@@ -5,12 +5,16 @@ import { MixingRecipeBottomSheet } from '@/components/MixingRecipeBottomSheet';
 import { PaletteSwatch } from '@/components/PaletteSwatch';
 import { PaywallModal } from '@/components/PaywallModal';
 import { SceneTransition } from '@/components/SceneTransition';
+import { StreakBanner } from '@/components/StreakBanner';
+import { UnsavedPaletteBanner } from '@/components/UnsavedPaletteBanner';
 import { UploadPlaceholderView } from '@/components/UploadPlaceholderView';
 import { useAuth } from '@/context/AuthContext';
 import { usePro } from '@/context/ProContext';
 import { getPaletteCount, savePalette } from '@/services/paletteService';
 import { uploadReferenceImageToR2 } from '@/services/storageService';
+import { trackPaletteGenerated, trackPaletteSaved } from '@/services/analytics';
 import { useImagePicker } from '@/services/useImagePicker';
+import { useEngagementStore } from '@/store/useEngagementStore';
 import { useProjectStore } from '@/store/useProjectStore';
 import { safeHaptics } from '@/utils/haptics';
 import { generatePalette } from '@/utils/paletteEngine';
@@ -19,7 +23,8 @@ import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { RefreshCw, Save } from 'lucide-react-native';
-import React, { useRef, useState } from 'react';
+import { useIsFocused } from '@react-navigation/core';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, ScrollView, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -45,6 +50,22 @@ export default function PaletteScreen() {
     const { user } = useAuth();
     const { isPro } = usePro();
     const { pickImage } = useImagePicker();
+
+    // Engagement store
+    const setUnsavedPalette = useEngagementStore((s) => s.setUnsavedPalette);
+    const clearUnsavedPalette = useEngagementStore((s) => s.clearUnsavedPalette);
+    const unsavedPaletteTimestamp = useEngagementStore((s) => s.unsavedPaletteTimestamp);
+
+    // Nudge when navigating away with unsaved palette
+    const isFocused = useIsFocused();
+    const wasFocused = useRef(false);
+
+    useEffect(() => {
+        if (wasFocused.current && !isFocused && unsavedPaletteTimestamp && generatedPalette.length > 0) {
+            showToast("Don't forget to save your palette!", 3000);
+        }
+        wasFocused.current = isFocused;
+    }, [isFocused]);
 
     // Inside PaletteScreen:
     const canvasRef = useRef<ColorSkiaCanvasRef>(null);
@@ -129,6 +150,10 @@ export default function PaletteScreen() {
                 console.log('🎨 handleGenerate - colors length:', colors.length);
                 setGeneratedPalette(colors);
                 console.log('✅ handleGenerate - setGeneratedPalette called');
+                trackPaletteGenerated(colors.length);
+
+                // Track unsaved palette for engagement nudges
+                setUnsavedPalette();
 
                 // ⭐️ Smart Review Trigger (Generation = 1 point)
                 try {
@@ -249,6 +274,7 @@ export default function PaletteScreen() {
                         if (error) {
                             showToast(error.message || "The cloud hiccuped. Try again? ☁️");
                         } else {
+                            trackPaletteSaved();
                             // Haptic feedback for success
                             await safeHaptics.notification(Haptics.NotificationFeedbackType.Success);
 
@@ -262,6 +288,9 @@ export default function PaletteScreen() {
                             } catch (e) {
                                 console.log('⚠️ Review service skipped (likely native module missing):', e);
                             }
+
+                            // Clear unsaved palette tracking
+                            clearUnsavedPalette();
 
                             // Alert removed in favor of Toast below
                             showToast(`From mind to memory! "${name}" is saved. ✨`);
@@ -325,6 +354,10 @@ export default function PaletteScreen() {
                             {isGenerating ? <ActivityIndicator size="small" color="#FFF" /> : <RefreshCw size={18} color="white" />}
                         </TouchableOpacity>
                     </View>
+
+                    {/* Engagement Banners */}
+                    <StreakBanner />
+                    <UnsavedPaletteBanner />
 
                     {/* Main Scrollable Content */}
                     <ScrollView
