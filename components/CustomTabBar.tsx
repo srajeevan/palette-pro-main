@@ -1,6 +1,6 @@
 import { safeHaptics } from '@/utils/haptics';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { Eye, Layers, Palette, Pipette, User } from 'lucide-react-native';
+import { Home, Palette, Pipette, Settings, SlidersHorizontal } from 'lucide-react-native';
 import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
@@ -67,12 +67,12 @@ export const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarPro
 
     const getIcon = (routeName: string, color: string) => {
         switch (routeName) {
-            case 'index': return <Pipette size={24} color={color} />;
+            case 'index': return <Home size={24} color={color} />;
+            case 'studio': return <Pipette size={24} color={color} />;
             case 'palette': return <Palette size={24} color={color} />;
-            case 'squint': return <Eye size={24} color={color} />;
-            case 'valuemap': return <Layers size={24} color={color} />;
-            case 'profile': return <User size={24} color={color} />;
-            default: return <Pipette size={24} color={color} />;
+            case 'tools': return <SlidersHorizontal size={24} color={color} />;
+            case 'settings': return <Settings size={24} color={color} />;
+            default: return <Home size={24} color={color} />;
         }
     };
 
@@ -97,12 +97,6 @@ export const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarPro
             style={[styles.container, { bottom: insets.bottom + 20 }]}
             onLayout={(e) => setLayout(e.nativeEvent.layout)}
         >
-            {/* Dark Glass Background via BlurView is hard to do with absolute positioning on just the container if we want strict border control.
-                Instead, we'll use a semi-transparent view with backdrop blur if available, or just the color.
-                React Native BlurView needs to wrap content or be absolute filled.
-                Let's wrap the whole inner content in a View that simulates the surface.
-             */}
-
             {/* Active Indicator (Glow) */}
             {layout.width > 0 && (
                 <Animated.View
@@ -165,16 +159,15 @@ const styles = StyleSheet.create({
         position: 'absolute',
         left: 20,
         right: 20,
-        height: 72, // Slightly taller for touch targets
-        backgroundColor: 'rgba(22, 22, 24, 0.85)', // #161618 @ 85%
-        borderRadius: 36, // Pill
+        height: 72,
+        backgroundColor: 'rgba(22, 22, 24, 0.85)',
+        borderRadius: 36,
         borderWidth: 1,
-        borderColor: 'rgba(62, 99, 221, 0.2)', // #3E63DD @ 20%
+        borderColor: 'rgba(62, 99, 221, 0.2)',
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 10,
-        // Shadow for "Hover" feel
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.3,
@@ -199,12 +192,10 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        // Active Glow Effect
-        backgroundColor: 'rgba(62, 99, 221, 0.15)', // Subtle Cobalt fill
-        shadowColor: '#00FFFF', // Cyan Outer Bloom
+        backgroundColor: 'rgba(62, 99, 221, 0.15)',
+        shadowColor: '#00FFFF',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.4,
         shadowRadius: 12,
-        // We'll mimic the bloom with shadow
     },
 });

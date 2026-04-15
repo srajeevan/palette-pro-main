@@ -168,7 +168,7 @@ export const IdeaBoardModal = ({ visible, onClose }: IdeaBoardModalProps) => {
                     <View style={styles.header}>
                         <View style={styles.dragHandle} />
                         <View style={styles.headerRow}>
-                            <AppText style={styles.title}>Idea Board</AppText>
+                            <AppText style={styles.title}>Feature Requests</AppText>
                             <View style={styles.headerActions}>
                                 <Pressable onPress={handleSuggest} style={styles.suggestButton}>
                                     <Plus size={16} color="#FFFFFF" />

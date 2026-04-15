@@ -5,7 +5,7 @@ import { trackEvent, trackScreenView } from '@/services/analytics';
 import { checkForUpdate, UpdateInfo } from '@/services/appConfigService';
 import { useEngagementStore } from '@/store/useEngagementStore';
 import { Tabs, usePathname } from 'expo-router';
-import { Eye, Layers, Palette, Pipette, User } from 'lucide-react-native';
+import { Home, Palette, Pipette, Settings, SlidersHorizontal } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import React, { useEffect, useRef, useState } from 'react';
 
@@ -38,7 +38,7 @@ export default function TabLayout() {
   // Track screen views on tab changes
   useEffect(() => {
     if (pathname) {
-      const screenName = pathname.replace('/', '') || 'index';
+      const screenName = pathname.replace('/', '') || 'home';
       if (pathname !== prevPathname.current) {
         prevPathname.current = pathname;
       }
@@ -56,6 +56,12 @@ export default function TabLayout() {
         <Tabs.Screen
           name="index"
           options={{
+            tabBarIcon: ({ color }) => <Home size={24} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="studio"
+          options={{
             tabBarIcon: ({ color }) => <Pipette size={24} color={color} />,
           }}
         />
@@ -66,21 +72,15 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="squint"
+          name="tools"
           options={{
-            tabBarIcon: ({ color }) => <Eye size={24} color={color} />,
+            tabBarIcon: ({ color }) => <SlidersHorizontal size={24} color={color} />,
           }}
         />
         <Tabs.Screen
-          name="valuemap"
+          name="settings"
           options={{
-            tabBarIcon: ({ color }) => <Layers size={24} color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="profile"
-          options={{
-            tabBarIcon: ({ color }) => <User size={24} color={color} />,
+            tabBarIcon: ({ color }) => <Settings size={24} color={color} />,
           }}
         />
       </Tabs>
