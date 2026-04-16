@@ -44,8 +44,8 @@ export const IdeaBoardModal = ({ visible, onClose }: IdeaBoardModalProps) => {
         if (user) {
             const myResult = await loadMyRequests();
             if (myResult.data) {
-                // Filter to non-approved items (pending/rejected) that aren't in the approved list
-                setMyIdeas(myResult.data.filter((r) => r.status !== 'approved'));
+                // Show only pending ideas (hide rejected silently, approved shown in community list)
+                setMyIdeas(myResult.data.filter((r) => r.status === 'pending'));
             }
         }
     }, [sortBy, user]);

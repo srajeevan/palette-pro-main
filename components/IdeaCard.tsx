@@ -38,11 +38,9 @@ export const IdeaCard = ({ item, hasVoted, onVote }: IdeaCardProps) => {
                             <AppText style={styles.badgeText}>You</AppText>
                         </View>
                     )}
-                    {isOwn && item.status !== 'approved' && (
-                        <View style={[styles.badge, item.status === 'rejected' ? styles.badgeRejected : styles.badgePending]}>
-                            <AppText style={styles.badgeText}>
-                                {item.status === 'pending' ? 'Pending' : 'Rejected'}
-                            </AppText>
+                    {isOwn && item.status === 'pending' && (
+                        <View style={[styles.badge, styles.badgePending]}>
+                            <AppText style={styles.badgeText}>Under Review</AppText>
                         </View>
                     )}
                 </View>
@@ -104,7 +102,6 @@ const styles = StyleSheet.create({
         paddingVertical: 2,
     },
     badgePending: { backgroundColor: '#71717A' },
-    badgeRejected: { backgroundColor: '#EF4444' },
     badgeText: {
         fontFamily: 'Inter_500Medium',
         fontSize: 11,

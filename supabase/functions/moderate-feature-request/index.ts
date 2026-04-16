@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendEmail } from "../_shared/sendEmail.ts";
 
 serve(async (req) => {
     try {
@@ -51,6 +52,50 @@ serve(async (req) => {
             .from("moderation_tokens")
             .update({ used: true })
             .eq("feature_request_id", token.feature_request_id);
+
+        // If rejected, send a gentle email to the user
+        if (token.action === "reject") {
+            try {
+                // Fetch the feature request to get user_id and title
+                const { data: request } = await serviceClient
+                    .from("feature_requests")
+                    .select("user_id, title")
+                    .eq("id", token.feature_request_id)
+                    .single();
+
+                if (request?.user_id) {
+                    // Fetch user email
+                    const { data: { user } } = await serviceClient.auth.admin.getUserById(request.user_id);
+
+                    if (user?.email) {
+                        await sendEmail({
+                            to: [{ email: user.email }],
+                            subject: `Your idea: "${request.title}"`,
+                            htmlContent: `
+<!DOCTYPE html>
+<html>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #f4f4f5; padding: 20px; margin: 0;">
+<div style="max-width: 520px; margin: 0 auto; background: #fff; border-radius: 16px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+    <h2 style="color: #18181b; margin-top: 0; font-size: 22px;">Thanks for sharing your idea!</h2>
+    <p style="color: #3f3f46; line-height: 1.7; font-size: 15px;">
+        We appreciate you suggesting <strong>"${request.title}"</strong>. We've reviewed it and while it's not feasible to implement right now, we'll definitely keep it in mind for future updates if it becomes viable.
+    </p>
+    <p style="color: #3f3f46; line-height: 1.7; font-size: 15px;">
+        Ideas like yours help us make Palette Pro better for everyone. Please keep them coming — we love hearing what our community wants to see!
+    </p>
+    <p style="color: #71717a; font-size: 14px; margin-top: 24px;">
+        — The Palette Pro Team
+    </p>
+</div>
+</body>
+</html>`,
+                        });
+                    }
+                }
+            } catch (emailErr) {
+                console.error("Rejection email failed:", emailErr);
+            }
+        }
 
         const actionText = token.action === "approve" ? "approved" : "rejected";
         return htmlResponse(

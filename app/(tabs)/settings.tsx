@@ -13,9 +13,10 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 import { showToast } from '@/utils/toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { Crown, HelpCircle, Lightbulb, Lock, LogOut, MessageSquare, Zap } from 'lucide-react-native';
+import { supabase } from '@/lib/supabase';
+import { Crown, HelpCircle, Lightbulb, Lock, LogOut, MessageSquare, Pencil, User, Zap } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SettingsScreen() {
@@ -29,6 +30,37 @@ export default function SettingsScreen() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [showFeedback, setShowFeedback] = useState(false);
     const [showIdeaBoard, setShowIdeaBoard] = useState(false);
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [editName, setEditName] = useState('');
+    const [isSavingName, setIsSavingName] = useState(false);
+
+    const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Artist';
+    const userEmail = user?.email || '';
+    const authProvider = user?.app_metadata?.provider || 'email';
+
+    const handleEditName = () => {
+        setEditName(displayName);
+        setIsEditingName(true);
+    };
+
+    const handleSaveName = async () => {
+        const trimmed = editName.trim();
+        if (!trimmed || trimmed === displayName) {
+            setIsEditingName(false);
+            return;
+        }
+        setIsSavingName(true);
+        const { error } = await supabase.auth.updateUser({
+            data: { full_name: trimmed },
+        });
+        setIsSavingName(false);
+        if (error) {
+            showToast('Failed to update name');
+        } else {
+            showToast('Name updated!');
+        }
+        setIsEditingName(false);
+    };
 
     const handleUpgradePress = () => {
         if (isPro) {
@@ -78,6 +110,49 @@ export default function SettingsScreen() {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
+                    {/* Profile Card */}
+                    {!isGuest && (
+                        <View style={styles.profileCard}>
+                            <View style={styles.profileAvatar}>
+                                <User size={28} color="#A1A1AA" />
+                            </View>
+                            <View style={styles.profileInfo}>
+                                {isEditingName ? (
+                                    <View style={styles.editNameRow}>
+                                        <TextInput
+                                            style={styles.editNameInput}
+                                            value={editName}
+                                            onChangeText={setEditName}
+                                            autoFocus
+                                            maxLength={40}
+                                            returnKeyType="done"
+                                            onSubmitEditing={handleSaveName}
+                                            placeholderTextColor="#52525B"
+                                        />
+                                        <Pressable onPress={handleSaveName} disabled={isSavingName} style={styles.saveNameButton}>
+                                            {isSavingName ? (
+                                                <ActivityIndicator size="small" color="#3E63DD" />
+                                            ) : (
+                                                <AppText style={styles.saveNameText}>Save</AppText>
+                                            )}
+                                        </Pressable>
+                                    </View>
+                                ) : (
+                                    <View style={styles.nameRow}>
+                                        <AppText style={styles.profileName}>{displayName}</AppText>
+                                        <Pressable onPress={handleEditName} hitSlop={8}>
+                                            <Pencil size={14} color="#52525B" />
+                                        </Pressable>
+                                    </View>
+                                )}
+                                <AppText style={styles.profileEmail}>{userEmail}</AppText>
+                                <AppText style={styles.profileProvider}>
+                                    Signed in with {authProvider === 'apple' ? 'Apple' : authProvider === 'google' ? 'Google' : 'Email'}
+                                </AppText>
+                            </View>
+                        </View>
+                    )}
+
                     {/* Guest Sync Card */}
                     {isGuest && (
                         <View style={{ marginBottom: 24 }}>
@@ -209,6 +284,76 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         marginLeft: 4,
         letterSpacing: 0.5,
+    },
+    profileCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#1C1C1E',
+        borderWidth: 1,
+        borderColor: '#28282A',
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 32,
+    },
+    profileAvatar: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: '#28282A',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 14,
+    },
+    profileInfo: {
+        flex: 1,
+    },
+    nameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    profileName: {
+        fontFamily: 'Inter_700Bold',
+        fontSize: 17,
+        color: '#FFFFFF',
+    },
+    profileEmail: {
+        fontFamily: 'Inter_400Regular',
+        fontSize: 13,
+        color: '#A1A1AA',
+        marginTop: 2,
+    },
+    profileProvider: {
+        fontFamily: 'Inter_400Regular',
+        fontSize: 11,
+        color: '#52525B',
+        marginTop: 4,
+    },
+    editNameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    editNameInput: {
+        flex: 1,
+        fontFamily: 'Inter_500Medium',
+        fontSize: 16,
+        color: '#FFFFFF',
+        backgroundColor: '#28282A',
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderWidth: 1,
+        borderColor: '#3E63DD',
+    },
+    saveNameButton: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+    },
+    saveNameText: {
+        fontFamily: 'Inter_500Medium',
+        fontSize: 14,
+        color: '#3E63DD',
     },
     deletingOverlay: {
         ...StyleSheet.absoluteFillObject,
