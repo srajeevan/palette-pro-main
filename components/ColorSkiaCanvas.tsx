@@ -109,13 +109,14 @@ export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef, ColorSkiaCanvasPro
                     return null;
                 }
 
-                const pixels = new Uint8Array(4); // RGBA
-                const success = snapshot.readPixels(physicalX, physicalY, {
+                const pixelData = snapshot.readPixels(physicalX, physicalY, {
                     width: 1,
                     height: 1,
                     colorType: 4,
                     alphaType: 1,
-                }, pixels);
+                } as any);
+                const pixels = pixelData ? new Uint8Array(pixelData.buffer ?? pixelData) : null;
+                if (!pixels) return null;
 
                 if (pixels[3] !== 0 || pixels[0] !== 0) {
                     return { r: pixels[0], g: pixels[1], b: pixels[2] };

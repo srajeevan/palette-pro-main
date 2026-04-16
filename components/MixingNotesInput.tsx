@@ -86,11 +86,6 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     input: {
-        fontFamily: 'PlayfairDisplay_700Bold', // Handwriting-ish feel or Typewriter? 
-        // Playfair Bold might be too heavy for body. Let's use Inter regular for readability or Playfair regular if available.
-        // Checking available fonts... we loaded PlayfairDisplay_700Bold. 
-        // We probably should use Inter_500Medium for readability, or system serif.
-        // Let's stick to Inter Medium for now for clarity, or if we had a handwriting font.
         fontFamily: 'Inter_500Medium',
         fontSize: 14,
         color: '#444',

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View } from 'react-native';
-import Animated, { Easing, useAnimatedProps, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, SharedValue, useAnimatedProps, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Circle, G } from 'react-native-svg';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -15,6 +15,48 @@ interface MultiSegmentDonutProps {
     size?: number;
     strokeWidth?: number;
 }
+
+/** Individual segment component — hooks are called at the top level */
+const DonutSegment = ({
+    center,
+    radius,
+    strokeWidth,
+    color,
+    targetLength,
+    circumference,
+    offset,
+    progress,
+}: {
+    center: number;
+    radius: number;
+    strokeWidth: number;
+    color: string;
+    targetLength: number;
+    circumference: number;
+    offset: number;
+    progress: SharedValue<number>;
+}) => {
+    const animatedProps = useAnimatedProps(() => {
+        const currentLength = targetLength * progress.value;
+        return {
+            strokeDasharray: [currentLength, circumference],
+            strokeDashoffset: offset,
+        };
+    });
+
+    return (
+        <AnimatedCircle
+            cx={center}
+            cy={center}
+            r={radius}
+            stroke={color}
+            strokeWidth={strokeWidth}
+            animatedProps={animatedProps}
+            strokeLinecap="round"
+            fill="transparent"
+        />
+    );
+};
 
 export const MultiSegmentDonut = ({ data, size = 160, strokeWidth = 14 }: MultiSegmentDonutProps) => {
     const radius = (size - strokeWidth) / 2;
@@ -31,10 +73,17 @@ export const MultiSegmentDonut = ({ data, size = 160, strokeWidth = 14 }: MultiS
         });
     }, [data]);
 
-    // Use a valid default if data is empty or missing
     const safeData = data && data.length > 0 ? data : [{ color: '#e5e7eb', percentage: 100 }];
 
-    let accumulatedPercentage = 0;
+    // Pre-compute offsets
+    const segments: { color: string; targetLength: number; offset: number }[] = [];
+    let accumulated = 0;
+    for (const item of safeData) {
+        const targetLength = (circumference * item.percentage) / 100;
+        const offset = -1 * (circumference * accumulated) / 100;
+        segments.push({ color: item.color, targetLength, offset });
+        accumulated += item.percentage;
+    }
 
     return (
         <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
@@ -45,45 +94,24 @@ export const MultiSegmentDonut = ({ data, size = 160, strokeWidth = 14 }: MultiS
                         cx={center}
                         cy={center}
                         r={radius}
-                        stroke="#F3F4F6" // gray-100/200 approximation
+                        stroke="#F3F4F6"
                         strokeWidth={strokeWidth}
                         fill="transparent"
                     />
 
-                    {safeData.map((item, index) => {
-                        const targetLength = (circumference * item.percentage) / 100;
-                        const finalOffset = -1 * (circumference * accumulatedPercentage) / 100;
-
-                        accumulatedPercentage += item.percentage;
-
-                        // Create animated props for each segment
-                        // Note: To make them "grow" around the ring, we can simply animate the strokeDasharray
-                        // from [0, circumference] to [targetLength, circumference].
-
-                        // eslint-disable-next-line react-hooks/rules-of-hooks
-                        const animatedProps = useAnimatedProps(() => {
-                            const currentLength = targetLength * progress.value;
-                            return {
-                                strokeDasharray: [currentLength, circumference],
-                                // DashOffset remains constant for position, but we need to ensure they start at the right place.
-                                strokeDashoffset: finalOffset,
-                            };
-                        });
-
-                        return (
-                            <AnimatedCircle
-                                key={index}
-                                cx={center}
-                                cy={center}
-                                r={radius}
-                                stroke={item.color}
-                                strokeWidth={strokeWidth}
-                                animatedProps={animatedProps}
-                                strokeLinecap="round"
-                                fill="transparent"
-                            />
-                        );
-                    })}
+                    {segments.map((seg, index) => (
+                        <DonutSegment
+                            key={`${index}-${seg.color}`}
+                            center={center}
+                            radius={radius}
+                            strokeWidth={strokeWidth}
+                            color={seg.color}
+                            targetLength={seg.targetLength}
+                            circumference={circumference}
+                            offset={seg.offset}
+                            progress={progress}
+                        />
+                    ))}
                 </G>
             </Svg>
 

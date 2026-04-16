@@ -1,7 +1,7 @@
 import { AppText } from '@/components/AppText';
 import { GalleryItem } from '@/components/GalleryCard';
 import { PaletteSwatch } from '@/components/PaletteSwatch';
-import { BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
+import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Image } from 'expo-image';
 import { Share, Trash2, X } from 'lucide-react-native';
 import React, { forwardRef, useMemo } from 'react';
@@ -19,7 +19,7 @@ interface GalleryDetailModalProps {
 
 export const GalleryDetailModal = forwardRef<BottomSheetModal, GalleryDetailModalProps>(
     ({ item, onClose, onShare, onOpenInStudio, onDelete, canDelete = false }, ref) => {
-        const snapPoints = useMemo(() => ['85%'], []);
+        const snapPoints = useMemo(() => ['90%'], []);
         const { width } = Dimensions.get('window');
 
         if (!item) return null;
@@ -30,34 +30,38 @@ export const GalleryDetailModal = forwardRef<BottomSheetModal, GalleryDetailModa
                 snapPoints={snapPoints}
                 index={0}
                 enablePanDownToClose={true}
-                backgroundStyle={{ backgroundColor: '#F5F5F4' }} // stone-100
+                backgroundStyle={{ backgroundColor: '#F5F5F4' }}
                 handleIndicatorStyle={{ backgroundColor: '#D6D3D1' }}
                 onDismiss={onClose}
             >
-                <BottomSheetView style={styles.contentContainer}>
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <View>
-                            <AppText style={styles.title}>Palette Details</AppText>
-                            <AppText style={styles.date}>Created {new Date().toLocaleDateString()}</AppText>
-                        </View>
-                        <View style={styles.headerActions}>
-                            {canDelete && (
-                                <TouchableOpacity
-                                    onPress={() => onDelete(item)}
-                                    style={styles.deleteButton}
-                                    activeOpacity={0.7}
-                                    accessibilityLabel="Delete palette"
-                                >
-                                    <Trash2 size={18} color="#DC2626" />
-                                </TouchableOpacity>
-                            )}
-                            <TouchableOpacity onPress={() => (ref as any).current?.dismiss()} style={styles.closeButton}>
-                                <X size={20} color="#57534e" />
-                            </TouchableOpacity>
-                        </View>
+                {/* Header — fixed outside scroll */}
+                <View style={styles.header}>
+                    <View>
+                        <AppText style={styles.title}>Palette Details</AppText>
+                        <AppText style={styles.date}>Created {new Date().toLocaleDateString()}</AppText>
                     </View>
+                    <View style={styles.headerActions}>
+                        {canDelete && (
+                            <TouchableOpacity
+                                onPress={() => onDelete(item)}
+                                style={styles.deleteButton}
+                                activeOpacity={0.7}
+                                accessibilityLabel="Delete palette"
+                            >
+                                <Trash2 size={18} color="#DC2626" />
+                            </TouchableOpacity>
+                        )}
+                        <TouchableOpacity onPress={() => (ref as any).current?.dismiss()} style={styles.closeButton}>
+                            <X size={20} color="#57534e" />
+                        </TouchableOpacity>
+                    </View>
+                </View>
 
+                {/* Scrollable content */}
+                <BottomSheetScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
                     {/* Image */}
                     <View style={styles.imageContainer}>
                         <Image
@@ -81,45 +85,39 @@ export const GalleryDetailModal = forwardRef<BottomSheetModal, GalleryDetailModa
                         ))}
                     </View>
 
-                    {/* Floating Action Buttons */}
-                    <View style={styles.fabContainer}>
-                        <View style={{ flexDirection: 'row', gap: 12 }}>
-                            <TouchableOpacity
-                                onPress={() => onOpenInStudio(item)}
-                                style={[styles.fab, { backgroundColor: '#3E63DD', paddingHorizontal: 24 }]}
-                                activeOpacity={0.8}
-                            >
-                                <AppText style={styles.fabText}>Open</AppText>
-                            </TouchableOpacity>
+                    {/* Action Buttons — inline, always visible */}
+                    <View style={styles.actionRow}>
+                        <TouchableOpacity
+                            onPress={() => onOpenInStudio(item)}
+                            style={[styles.actionButton, { backgroundColor: '#3E63DD' }]}
+                            activeOpacity={0.8}
+                        >
+                            <AppText style={styles.actionButtonText}>Open</AppText>
+                        </TouchableOpacity>
 
-                            <TouchableOpacity
-                                onPress={onShare}
-                                style={[styles.fab, { backgroundColor: '#1A1A1A', paddingHorizontal: 24 }]}
-                                activeOpacity={0.8}
-                            >
-                                <Share size={20} color="#FFFFFF" />
-                                <AppText style={styles.fabText}>Share</AppText>
-                            </TouchableOpacity>
-                        </View>
+                        <TouchableOpacity
+                            onPress={onShare}
+                            style={[styles.actionButton, { backgroundColor: '#1A1A1A' }]}
+                            activeOpacity={0.8}
+                        >
+                            <Share size={18} color="#FFFFFF" />
+                            <AppText style={styles.actionButtonText}>Share</AppText>
+                        </TouchableOpacity>
                     </View>
-
-                </BottomSheetView>
+                </BottomSheetScrollView>
             </BottomSheetModal>
         );
     }
 );
 
 const styles = StyleSheet.create({
-    contentContainer: {
-        flex: 1,
-        paddingHorizontal: 20,
-        paddingTop: 10,
-    },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 20,
+        paddingHorizontal: 20,
+        paddingTop: 4,
+        paddingBottom: 16,
     },
     title: {
         fontFamily: 'PlayfairDisplay_700Bold',
@@ -153,13 +151,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    scrollContent: {
+        paddingHorizontal: 20,
+        paddingBottom: 40,
+    },
     imageContainer: {
         width: '100%',
-        height: 300,
+        height: 280,
         borderRadius: 24,
         overflow: 'hidden',
         backgroundColor: '#e7e5e4',
-        marginBottom: 24,
+        marginBottom: 20,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
@@ -170,32 +172,29 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'center',
-        marginBottom: 40,
+        marginBottom: 24,
     },
-    fabContainer: {
-        position: 'absolute',
-        bottom: 40,
-        left: 0,
-        right: 0,
-        alignItems: 'center',
+    actionRow: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 12,
     },
-    fab: {
+    actionButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#1A1A1A',
-        paddingVertical: 16,
-        paddingHorizontal: 32,
-        borderRadius: 32,
-        gap: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 28,
+        borderRadius: 28,
+        gap: 10,
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.2,
-        shadowRadius: 16,
-        elevation: 8,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
+        elevation: 6,
     },
-    fabText: {
+    actionButtonText: {
         fontFamily: 'Inter_700Bold',
-        fontSize: 16,
+        fontSize: 15,
         color: '#FFFFFF',
-    }
+    },
 });

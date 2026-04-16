@@ -28,7 +28,7 @@ export const extractPixels = (image: SkImage, sampleRate: number = 10): Uint8Arr
         alphaType: 1, // premul
     });
 
-    return pixels;
+    return pixels as Uint8Array | null;
 };
 
 /**

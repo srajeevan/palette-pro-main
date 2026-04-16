@@ -6,9 +6,9 @@ import { showToast } from '@/utils/toast';
 import { checkDailyMixingLimit, incrementDailyMixingCount } from '@/utils/usage';
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
 import { Info, X } from 'lucide-react-native';
-import React, { forwardRef, useCallback, useEffect, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, TouchableOpacity, View } from 'react-native';
-import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { AppText } from './AppText';
 import { RecipeLimitOverlay } from './RecipeLimitOverlay';
 
@@ -23,25 +23,27 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
         const { isPro } = usePro();
         const [mixResult, setMixResult] = useState<MixResult | null>(null);
         const [isCalculating, setIsCalculating] = useState(false);
-        const progress = useSharedValue(0);
 
         // Daily Limit State
         const [isViewAllowed, setIsViewAllowed] = useState(false);
         const [dailyLimitReached, setDailyLimitReached] = useState(false);
         const [showLimitOverlay, setShowLimitOverlay] = useState(false);
 
+        // Track which targetColor has already been counted to prevent double-counting
+        const countedColorRef = useRef<string | null>(null);
+        const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
         useEffect(() => {
             if (targetColor) {
                 // Reset State
                 setIsViewAllowed(false);
                 setDailyLimitReached(false);
+                setShowLimitOverlay(false);
                 setIsCalculating(true);
-                progress.value = 0; // Reset progress
                 const rgb = hexToRgb(targetColor);
                 if (rgb) {
-                    // Small delay to allow UI to update
-                    // Small delay to allow UI to update
-                    setTimeout(async () => {
+                    // Delay to let the sheet animation + loading spinner render first
+                    timerRef.current = setTimeout(async () => {
                         const result = calculateMix(rgb);
                         setMixResult(result);
 
@@ -50,15 +52,21 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                             setIsViewAllowed(true);
                             trackRecipeViewed(-1); // -1 = unlimited (pro)
                         } else {
+                            // Only count this color once (prevents double-counting if isPro changes)
+                            const alreadyCounted = countedColorRef.current === targetColor;
+
                             const { allowed } = await checkDailyMixingLimit('palette');
                             if (allowed) {
                                 setIsViewAllowed(true);
-                                const newCount = await incrementDailyMixingCount('palette');
-                                trackRecipeViewed(10 - newCount);
-                                if (newCount === 5) {
-                                    showToast("Halfway there! 5 of 10 free mixes used today. 🎨");
-                                } else if (newCount === 8) {
-                                    showToast("Almost out! 2 free mixes left today. ⏳");
+                                if (!alreadyCounted) {
+                                    countedColorRef.current = targetColor;
+                                    const newCount = await incrementDailyMixingCount('palette');
+                                    trackRecipeViewed(10 - newCount);
+                                    if (newCount === 5) {
+                                        showToast("Halfway there! 5 of 10 free mixes used today. 🎨");
+                                    } else if (newCount === 8) {
+                                        showToast("Almost out! 2 free mixes left today. ⏳");
+                                    }
                                 }
                             } else {
                                 setDailyLimitReached(true);
@@ -70,25 +78,16 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                         }
 
                         setIsCalculating(false);
-
-                        // Animate progress bar
-                        const targetPercentage = result.distance !== undefined ? Math.max(0, 100 - (result.distance / 2)) : 0;
-                        progress.value = withDelay(300, withTiming(targetPercentage, { duration: 800 }));
                     }, 100);
                 } else {
                     setIsCalculating(false);
                 }
             }
-        }, [targetColor]);
 
-        const progressStyle = useAnimatedStyle(() => ({
-            width: `${progress.value}%`,
-            backgroundColor: progress.value > 90
-                ? '#22c55e' // Green
-                : progress.value > 80
-                    ? '#eab308' // Yellow
-                    : '#f97316' // Orange
-        }));
+            return () => {
+                if (timerRef.current) clearTimeout(timerRef.current);
+            };
+        }, [targetColor, isPro]);
 
         const renderBackdrop = useCallback(
             (props: any) => (
@@ -193,16 +192,31 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                                 >
                                     {/* Recipe Text */}
                                     {isViewAllowed ? (
-                                        <AppText
-                                            style={{
-                                                fontFamily: 'PlayfairDisplay_400Regular',
-                                                fontSize: 20,
-                                                color: '#E5E5E5',
-                                                lineHeight: 30
-                                            }}
-                                        >
-                                            {mixResult?.recipe || 'No recipe available'}
-                                        </AppText>
+                                        <>
+                                            <AppText
+                                                style={{
+                                                    fontFamily: 'PlayfairDisplay_400Regular',
+                                                    fontSize: 20,
+                                                    color: '#E5E5E5',
+                                                    lineHeight: 30
+                                                }}
+                                            >
+                                                {mixResult?.recipe || 'No recipe available'}
+                                            </AppText>
+                                            {mixResult?.reasoning && (
+                                                <AppText
+                                                    style={{
+                                                        fontFamily: 'Inter_400Regular',
+                                                        fontSize: 12,
+                                                        color: '#71717A',
+                                                        lineHeight: 17,
+                                                        marginTop: 10,
+                                                    }}
+                                                >
+                                                    {mixResult.reasoning}
+                                                </AppText>
+                                            )}
+                                        </>
                                     ) : (
                                         <AppText
                                             style={{
@@ -221,29 +235,55 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
 
                             {/* Match Quality */}
                             <Animated.View entering={FadeInDown.springify().damping(14).delay(300)} className="mb-8">
-                                <View className="flex-row justify-between items-end mb-2">
-                                    <AppText style={{ fontFamily: 'Inter_600SemiBold', fontSize: 12, color: '#A1A1AA', letterSpacing: 0.5 }}>ACCURACY</AppText>
-                                    <AppText style={{ fontFamily: 'Inter_700Bold', fontSize: 18, color: '#3E63DD' }}>
-                                        {mixResult?.distance !== undefined
-                                            ? `${Math.round(Math.max(0, 100 - (mixResult.distance / 2)))}%`
-                                            : 'N/A'}
-                                    </AppText>
-                                </View>
-                                <View
-                                    style={{
-                                        height: 4,
-                                        borderRadius: 2,
-                                        backgroundColor: '#333',
-                                        overflow: 'hidden'
-                                    }}
-                                >
-                                    <Animated.View
-                                        style={[
-                                            { height: '100%' },
-                                            progressStyle
-                                        ]}
-                                    />
-                                </View>
+                                {(() => {
+                                    const d = mixResult?.distance ?? 99;
+                                    const label = d < 1 ? 'Perfect Match'
+                                        : d < 2 ? 'Excellent'
+                                        : d < 4 ? 'Very Good'
+                                        : d < 7 ? 'Good'
+                                        : d < 10 ? 'Fair'
+                                        : 'Approximate';
+                                    const labelColor = d < 2 ? '#22c55e'
+                                        : d < 4 ? '#84cc16'
+                                        : d < 7 ? '#eab308'
+                                        : d < 10 ? '#f97316'
+                                        : '#ef4444';
+                                    const barPercent = Math.max(5, Math.min(100,
+                                        d < 1 ? 100
+                                        : d < 2 ? 90
+                                        : d < 4 ? 75
+                                        : d < 7 ? 55
+                                        : d < 10 ? 35
+                                        : 15
+                                    ));
+                                    return (
+                                        <>
+                                            <View className="flex-row justify-between items-end mb-2">
+                                                <AppText style={{ fontFamily: 'Inter_600SemiBold', fontSize: 12, color: '#A1A1AA', letterSpacing: 0.5 }}>MATCH QUALITY</AppText>
+                                                <AppText style={{ fontFamily: 'Inter_700Bold', fontSize: 16, color: labelColor }}>
+                                                    {label}
+                                                </AppText>
+                                            </View>
+                                            <View
+                                                style={{
+                                                    height: 4,
+                                                    borderRadius: 2,
+                                                    backgroundColor: '#333',
+                                                    overflow: 'hidden'
+                                                }}
+                                            >
+                                                <View
+                                                    style={{
+                                                        height: '100%',
+                                                        width: `${barPercent}%`,
+                                                        backgroundColor: labelColor,
+                                                        borderRadius: 2,
+                                                    }}
+                                                />
+                                            </View>
+                                        </>
+                                    );
+                                })()}
                             </Animated.View>
 
                             {/* Disclaimer */}
@@ -259,7 +299,7 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                     )}
                 </BottomSheetView>
                 <RecipeLimitOverlay
-                    visible={showLimitOverlay}
+                    visible={showLimitOverlay && !isPro}
                     onDismiss={() => setShowLimitOverlay(false)}
                 />
             </BottomSheetModal>

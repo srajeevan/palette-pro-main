@@ -48,7 +48,7 @@ export const SettingsRow = ({
             <View style={styles.leftContent}>
                 <View style={styles.iconContainer}>
                     {/* Clone icon to enforce color if needed, or rely on parent passing correct color */}
-                    {React.cloneElement(icon as React.ReactElement, { color: type === 'destructive' ? '#EF4444' : '#A1A1AA' })}
+                    {React.cloneElement(icon as React.ReactElement<any>, { color: type === 'destructive' ? '#EF4444' : '#A1A1AA' })}
                 </View>
                 <View>
                     <AppText style={[

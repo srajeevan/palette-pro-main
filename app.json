@@ -18,7 +18,14 @@
       "bundleIdentifier": "com.sreejith.palettepro",
       "appleTeamId": "BM733R453B",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.1049473771008-edc1ltging084fulv8be7ficpa3nojfl"
+            ]
+          }
+        ]
       }
     },
     "android": {
@@ -29,9 +36,7 @@
       "package": "com.sreejith.palettepro",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
-      ]
+      "permissions": []
     },
     "web": {
       "bundler": "metro",
@@ -50,7 +55,11 @@
       ],
       "expo-apple-authentication",
       "expo-localization",
-      "@sentry/react-native"
+      ["@sentry/react-native", {
+        "organization": "ios-apps",
+        "project": "palettepro"
+      }],
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true

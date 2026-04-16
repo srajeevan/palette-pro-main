@@ -14,10 +14,10 @@ import { calculateMix, MixResult } from '@/utils/mixingEngine';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useIsFocused } from '@react-navigation/native';
 import { ImagePlus } from 'lucide-react-native';
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Dimensions, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -45,13 +45,15 @@ export default function PickerScreen() {
   const [currentMix, setCurrentMix] = useState<MixResult>({
     closestColor: '#FFFFFF',
     recipe: 'Touch image to mix...',
-    distance: 0
+    distance: 0,
+    ingredients: [],
+    reasoning: null,
   });
 
   // Modal State
   const [isRecipeModalVisible, setIsRecipeModalVisible] = useState(false);
 
-  // Zoom/Pan State
+  // Zoom/Pan State (UI thread — drives animations)
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const translateX = useSharedValue(0);
@@ -59,14 +61,25 @@ export default function PickerScreen() {
   const savedTranslateX = useSharedValue(0);
   const savedTranslateY = useSharedValue(0);
 
+  // JS-thread mirror of zoom state — updated on gesture end.
+  // Reading shared values from JS thread can return stale data because
+  // UI↔JS bridge sync is async. These refs are set via runOnJS at the
+  // end of each gesture, guaranteeing the JS thread has the correct values
+  // when the user subsequently drags the color pointer.
+  const jsZoom = useRef({ scale: 1, tx: 0, ty: 0 });
+
+  const syncZoomToJS = useCallback((s: number, tx: number, ty: number) => {
+    jsZoom.current = { scale: s, tx, ty };
+  }, []);
+
   const pinch = Gesture.Pinch()
     .onUpdate((e) => {
       scale.value = Math.max(1, savedScale.value * e.scale);
     })
     .onEnd(() => {
       savedScale.value = scale.value;
+      runOnJS(syncZoomToJS)(scale.value, translateX.value, translateY.value);
     });
-
 
   const pan = Gesture.Pan()
     .averageTouches(true)
@@ -79,6 +92,7 @@ export default function PickerScreen() {
     .onEnd(() => {
       savedTranslateX.value = translateX.value;
       savedTranslateY.value = translateY.value;
+      runOnJS(syncZoomToJS)(scale.value, translateX.value, translateY.value);
     });
 
   const composedGesture = Gesture.Simultaneous(pinch, pan);
@@ -91,23 +105,36 @@ export default function PickerScreen() {
     ]
   }));
 
-  const handleColorChange = (screenX: number, screenY: number) => {
+  // Debounce timer for expensive mix calculation
+  const mixTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleColorChange = useCallback((screenX: number, screenY: number) => {
     const originX = canvasLayout.width / 2;
     const originY = canvasLayout.height / 2;
 
-    const unzoomedX = ((screenX - translateX.value - originX) / scale.value) + originX;
-    const unzoomedY = ((screenY - translateY.value - originY) / scale.value) + originY;
+    // Use JS-thread zoom state (synced via runOnJS on gesture end)
+    // instead of reading shared values which can be stale on JS thread
+    const { scale: zs, tx: ztx, ty: zty } = jsZoom.current;
+
+    const unzoomedX = ((screenX - ztx - originX) / zs) + originX;
+    const unzoomedY = ((screenY - zty - originY) / zs) + originY;
 
     const pixel = canvasRef.current?.getPixelColor(unzoomedX, unzoomedY);
 
     if (pixel) {
+      // Instant: update color ribbon immediately (zero cost)
       const hex = `#${((1 << 24) + (pixel.r << 16) + (pixel.g << 8) + pixel.b).toString(16).slice(1).toUpperCase()}`;
       setPickedRgb(pixel);
       setPickedColor(hex);
-      const mix = calculateMix(pixel);
-      setCurrentMix(mix);
+
+      // Debounced: only run expensive KM mix after user pauses dragging (150ms)
+      if (mixTimerRef.current) clearTimeout(mixTimerRef.current);
+      mixTimerRef.current = setTimeout(() => {
+        const mix = calculateMix(pixel);
+        setCurrentMix(mix);
+      }, 150);
     }
-  };
+  }, [canvasLayout.width, canvasLayout.height]);
 
   // Interaction State
   const isInteracting = useSharedValue(0); // 0 = false, 1 = true
@@ -125,6 +152,13 @@ export default function PickerScreen() {
   const handlePresentRecipeModal = () => {
     setIsRecipeModalVisible(true);
   };
+
+  // Cleanup debounce timer on unmount
+  React.useEffect(() => {
+    return () => {
+      if (mixTimerRef.current) clearTimeout(mixTimerRef.current);
+    };
+  }, []);
 
   // Initial Color Pick on Image Load
   const isFocused = useIsFocused();
@@ -280,6 +314,7 @@ export default function PickerScreen() {
                 <MixingRecipeModal
                   visible={isRecipeModalVisible}
                   recipeData={currentMix.recipe}
+                  reasoning={currentMix.reasoning}
                   onClose={() => setIsRecipeModalVisible(false)}
                   onUnlock={() => {
                     // Open Paywall Modal

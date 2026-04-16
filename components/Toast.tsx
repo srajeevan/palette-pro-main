@@ -17,12 +17,12 @@ export interface ToastRef {
     show: (message: string, duration?: number) => void;
 }
 
-export const Toast = forwardRef<ToastRef>((props, ref) => {
+export const Toast = forwardRef<ToastRef>((_, ref) => {
     const insets = useSafeAreaInsets();
     const translateY = useSharedValue(-100);
     const [message, setMessage] = useState('');
     const [visible, setVisible] = useState(false);
-    const hideTimer = useRef<ReturnType<typeof setTimeout>>();
+    const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
     const hide = useCallback(() => {
         cancelAnimation(translateY);

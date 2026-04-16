@@ -14,7 +14,6 @@ import { getPaletteCount, savePalette } from '@/services/paletteService';
 import { uploadReferenceImageToR2 } from '@/services/storageService';
 import { trackPaletteGenerated, trackPaletteSaved } from '@/services/analytics';
 import { useImagePicker } from '@/services/useImagePicker';
-import { useEngagementStore } from '@/store/useEngagementStore';
 import { useProjectStore } from '@/store/useProjectStore';
 import { safeHaptics } from '@/utils/haptics';
 import { generatePalette } from '@/utils/paletteEngine';
@@ -22,7 +21,7 @@ import { showToast } from '@/utils/toast';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { RefreshCw, Save } from 'lucide-react-native';
+import { Check, RefreshCw, Save } from 'lucide-react-native';
 import { useIsFocused } from '@react-navigation/core';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, ScrollView, TouchableOpacity, View } from 'react-native';
@@ -39,8 +38,12 @@ export default function PaletteScreen() {
         imageUri,
         generatedPalette,
         colorCount,
+        isPaletteDirty,
+        isFromSavedPalette,
         setGeneratedPalette,
-        setColorCount
+        setColorCount,
+        markPaletteSaved,
+        resetProject,
     } = useProjectStore();
 
     console.log('🖼️ PaletteScreen render - generatedPalette:', generatedPalette);
@@ -51,17 +54,12 @@ export default function PaletteScreen() {
     const { isPro } = usePro();
     const { pickImage } = useImagePicker();
 
-    // Engagement store
-    const setUnsavedPalette = useEngagementStore((s) => s.setUnsavedPalette);
-    const clearUnsavedPalette = useEngagementStore((s) => s.clearUnsavedPalette);
-    const unsavedPaletteTimestamp = useEngagementStore((s) => s.unsavedPaletteTimestamp);
-
     // Nudge when navigating away with unsaved palette
     const isFocused = useIsFocused();
     const wasFocused = useRef(false);
 
     useEffect(() => {
-        if (wasFocused.current && !isFocused && unsavedPaletteTimestamp && generatedPalette.length > 0) {
+        if (wasFocused.current && !isFocused && isPaletteDirty && !isFromSavedPalette && generatedPalette.length > 0) {
             showToast("Don't forget to save your palette!", 3000);
         }
         wasFocused.current = isFocused;
@@ -148,12 +146,10 @@ export default function PaletteScreen() {
                 const colors = generatePalette(image, targetCount);
                 console.log('🎨 handleGenerate - colors generated:', colors);
                 console.log('🎨 handleGenerate - colors length:', colors.length);
-                setGeneratedPalette(colors);
+                // Mark dirty only for fresh images (not saved palettes being re-explored)
+                setGeneratedPalette(colors, !isFromSavedPalette);
                 console.log('✅ handleGenerate - setGeneratedPalette called');
                 trackPaletteGenerated(colors.length);
-
-                // Track unsaved palette for engagement nudges
-                setUnsavedPalette();
 
                 // ⭐️ Smart Review Trigger (Generation = 1 point)
                 try {
@@ -258,6 +254,7 @@ export default function PaletteScreen() {
                                 } else {
                                     // Upload failed — abort save so user isn't left with a broken row
                                     setIsSaving(false);
+                                    showToast("Image upload failed. Please try again.");
                                     return;
                                 }
                             }
@@ -289,11 +286,13 @@ export default function PaletteScreen() {
                                 console.log('⚠️ Review service skipped (likely native module missing):', e);
                             }
 
-                            // Clear unsaved palette tracking
-                            clearUnsavedPalette();
+                            showToast(`"${name}" saved to your collection!`);
 
-                            // Alert removed in favor of Toast below
-                            showToast(`From mind to memory! "${name}" is saved. ✨`);
+                            // Brief pause to let the toast register, then clean up and go home
+                            setTimeout(() => {
+                                resetProject();
+                                router.replace('/' as any);
+                            }, 600);
                         }
                     }
                 }
@@ -335,12 +334,25 @@ export default function PaletteScreen() {
                     <View className="absolute top-8 right-6 flex-row items-center space-x-3 z-50">
                         {generatedPalette.length > 0 && (
                             <TouchableOpacity
-                                onPress={handleSavePalette}
-                                disabled={isSaving}
-                                className={`w-10 h-10 items-center justify-center rounded-full border border-[#28282A] ${isSaving ? 'bg-[#1C1C1E]' : 'bg-[#3E63DD]'}`}
+                                onPress={isFromSavedPalette && !isPaletteDirty ? undefined : handleSavePalette}
+                                disabled={isSaving || (isFromSavedPalette && !isPaletteDirty)}
+                                style={{
+                                    width: 40,
+                                    height: 40,
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    borderRadius: 20,
+                                    borderWidth: 1,
+                                    borderColor: '#28282A',
+                                    backgroundColor: isFromSavedPalette && !isPaletteDirty
+                                        ? '#1C1C1E' // Muted when already saved
+                                        : isSaving ? '#1C1C1E' : '#3E63DD',
+                                }}
                             >
                                 {isSaving ? (
                                     <ActivityIndicator size="small" color="#FFF" />
+                                ) : isFromSavedPalette && !isPaletteDirty ? (
+                                    <Check size={18} color="#22c55e" />
                                 ) : (
                                     <Save size={18} color="white" />
                                 )}

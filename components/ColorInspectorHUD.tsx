@@ -62,7 +62,7 @@ export const ColorInspectorHUD = ({ color, rgb, mix }: ColorInspectorHUDProps) =
                         Oil Mix Recipe
                     </AppText>
                     {/* Visual confidence or distance indicator could go here */}
-                    {mix.distance < 10 && (
+                    {mix.distance < 2 && (
                         <View className="bg-green-100 px-2 py-0.5 rounded-full">
                             <AppText className="text-[10px] text-green-700 font-bold">EXACT MATCH</AppText>
                         </View>

@@ -12,6 +12,7 @@ import { Info } from 'lucide-react-native';
 interface MixingRecipeModalProps {
     visible: boolean;
     recipeData: string; // e.g., "50% Burnt Umber + 50% White"
+    reasoning?: string | null;
     onClose: () => void;
     onUnlock: () => void;
 }
@@ -52,24 +53,40 @@ const getPigmentColor = (name: string): string => {
 const parseRecipe = (recipe: string): Ingredient[] => {
     if (!recipe || recipe === 'Touch image to mix...' || recipe === 'Analyzing...') return [];
 
-    // Example format: "3 parts Titanium White + 1 part Sap Green"
-    const segments = recipe.split('+');
+    // Example format: "3 parts French Ultramarine (PB29) + 1 part Cadmium Yellow Pale (PY35)"
+    // Also handles: "100% Titanium White (PW6)"
+    const segments = recipe.split(' + ');
 
     // First pass: Parse parts and names
     const parsedItems = segments.map(segment => {
         const trimmed = segment.trim();
-        // Match "3 parts Name" or "1 part Name"
-        const partMatch = trimmed.match(/^(\d+)\s+parts?\s+(.+)$/i);
 
-        if (partMatch) {
+        // Match "100% Name (CIN)" for single pigments
+        const singleMatch = trimmed.match(/^100%\s+(.+?)(?:\s+\([A-Z][A-Za-z0-9+]+\))?$/i);
+        if (singleMatch) {
+            const rawName = singleMatch[1].trim();
+            const cleanName = rawName.replace(/\s*\([A-Z][A-Za-z0-9+]+\)\s*$/, '').trim();
             return {
-                parts: parseInt(partMatch[1], 10),
-                name: partMatch[2].trim(),
-                color: getPigmentColor(partMatch[2].trim())
+                parts: 1,
+                name: rawName,
+                color: getPigmentColor(cleanName)
             };
         }
 
-        // Fallback for "Name" (assume 1 part if not specified, though engine usually specifies)
+        // Match "3 parts Name (CIN)" or "1 part Name (CIN)"
+        const partMatch = trimmed.match(/^(\d+)\s+parts?\s+(.+)$/i);
+        if (partMatch) {
+            const rawName = partMatch[2].trim();
+            // Strip CIN code for color lookup but keep for display
+            const cleanName = rawName.replace(/\s*\([A-Z][A-Za-z0-9+]+\)\s*$/, '').trim();
+            return {
+                parts: parseInt(partMatch[1], 10),
+                name: rawName,
+                color: getPigmentColor(cleanName)
+            };
+        }
+
+        // Fallback
         return {
             parts: 1,
             name: trimmed,
@@ -80,15 +97,33 @@ const parseRecipe = (recipe: string): Ingredient[] => {
     // Calculate total for percentage
     const totalParts = parsedItems.reduce((sum, item) => sum + item.parts, 0);
 
-    // Map to Ingredient interface
-    return parsedItems.map(item => ({
-        name: item.parts > 1 ? `${item.parts} parts ${item.name}` : `1 part ${item.name}`, // Keep full string as name for display
-        percentage: totalParts > 0 ? Math.round((item.parts / totalParts) * 100) : 0,
+    // Map to Ingredient interface with largest-remainder rounding (sums to exactly 100%)
+    if (totalParts <= 0) {
+        return parsedItems.map(item => ({
+            name: item.parts > 1 ? `${item.parts} parts ${item.name}` : `1 part ${item.name}`,
+            percentage: 0,
+            color: item.color
+        }));
+    }
+
+    const rawPercentages = parsedItems.map(item => (item.parts / totalParts) * 100);
+    const floored = rawPercentages.map(p => Math.floor(p));
+    let remainder = 100 - floored.reduce((a, b) => a + b, 0);
+    // Distribute remainder to items with largest fractional parts
+    const fractionals = rawPercentages.map((p, i) => ({ i, frac: p - floored[i] }));
+    fractionals.sort((a, b) => b.frac - a.frac);
+    for (let k = 0; k < remainder; k++) {
+        floored[fractionals[k].i] += 1;
+    }
+
+    return parsedItems.map((item, i) => ({
+        name: item.parts > 1 ? `${item.parts} parts ${item.name}` : `1 part ${item.name}`,
+        percentage: floored[i],
         color: item.color
     }));
 };
 
-export const MixingRecipeModal = ({ visible, recipeData, onClose, onUnlock }: MixingRecipeModalProps) => {
+export const MixingRecipeModal = ({ visible, recipeData, reasoning, onClose, onUnlock }: MixingRecipeModalProps) => {
     const ingredients = useMemo(() => parseRecipe(recipeData), [recipeData]);
     const { isPro } = usePro();
     const [isViewAllowed, setIsViewAllowed] = React.useState(false);
@@ -201,6 +236,18 @@ export const MixingRecipeModal = ({ visible, recipeData, onClose, onUnlock }: Mi
                                 </View>
                             )}
                         </View>
+
+                        {/* Reasoning (shown for single-pigment results) */}
+                        {isViewAllowed && reasoning && ingredients.length > 0 && (
+                            <View style={{ paddingHorizontal: 24, marginBottom: 12 }}>
+                                <View style={{ flexDirection: 'row', gap: 8, backgroundColor: 'rgba(59,130,246,0.06)', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(59,130,246,0.12)' }}>
+                                    <Info size={14} color="#3B82F6" style={{ marginTop: 2 }} />
+                                    <Text style={{ flex: 1, fontSize: 12, color: '#4B5563', lineHeight: 17, fontFamily: 'Inter_400Regular' }}>
+                                        {reasoning}
+                                    </Text>
+                                </View>
+                            </View>
+                        )}
 
                         {/* Disclaimer */}
                         {ingredients.length > 0 && (

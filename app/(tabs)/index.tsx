@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { usePro } from '@/context/ProContext';
 import { deletePalette, loadPalettes } from '@/services/paletteService';
 import { useEngagementStore } from '@/store/useEngagementStore';
+import { useProjectStore } from '@/store/useProjectStore';
 import { showToast } from '@/utils/toast';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Crown, Flame, Palette, Pipette, Plus, SlidersHorizontal } from 'lucide-react-native';
@@ -26,7 +27,9 @@ export default function HomeScreen() {
     const router = useRouter();
     const currentStreak = useEngagementStore((s) => s.currentStreak);
     const longestStreak = useEngagementStore((s) => s.longestStreak);
-    const unsavedPaletteTimestamp = useEngagementStore((s) => s.unsavedPaletteTimestamp);
+    const isPaletteDirty = useProjectStore((s) => s.isPaletteDirty);
+    const isFromSavedPalette = useProjectStore((s) => s.isFromSavedPalette);
+    const hasGeneratedPalette = useProjectStore((s) => s.generatedPalette.length > 0);
 
     const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
     const [loadingPalettes, setLoadingPalettes] = useState(false);
@@ -66,10 +69,24 @@ export default function HomeScreen() {
 
     const handleOpenInStudio = (item: GalleryItem) => {
         try {
-            const { setImageUri, setGeneratedPalette, resetProject } = require('@/store/useProjectStore').useProjectStore.getState();
-            resetProject();
-            setImageUri(item.imageUrl);
-            setGeneratedPalette(item.colors);
+            const store = require('@/store/useProjectStore').useProjectStore;
+            // Sync colorCount to nearest preset to match the saved palette
+            const presets = [4, 6, 8, 12];
+            const closest = presets.reduce((prev, curr) =>
+                Math.abs(curr - item.colors.length) < Math.abs(prev - item.colors.length) ? curr : prev
+            );
+            // Set everything in a single atomic update to avoid intermediate renders
+            // where generatedPalette is empty (which would trigger auto-generate)
+            store.setState({
+                imageUri: item.imageUrl,
+                imageDimensions: null,
+                isUploading: false,
+                pickedColors: [],
+                generatedPalette: item.colors,
+                colorCount: closest,
+                isPaletteDirty: false,
+                isFromSavedPalette: true,
+            });
             setSelectedItem(null);
             detailModalRef.current?.dismiss();
             setTimeout(() => {
@@ -193,7 +210,12 @@ export default function HomeScreen() {
             <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.quickActions}>
                 <Pressable
                     style={styles.quickActionPrimary}
-                    onPress={() => router.push('/(tabs)/palette')}
+                    onPress={() => {
+                        // Reset project so the palette screen shows the upload placeholder
+                        const { resetProject } = require('@/store/useProjectStore').useProjectStore.getState();
+                        resetProject();
+                        router.push('/(tabs)/palette');
+                    }}
                 >
                     <Plus size={18} color="#FFFFFF" />
                     <AppText style={styles.quickActionPrimaryText}>New Palette</AppText>
@@ -214,8 +236,8 @@ export default function HomeScreen() {
                 </Pressable>
             </Animated.View>
 
-            {/* Continue Card — shown when there's an unsaved palette in progress */}
-            {unsavedPaletteTimestamp && (
+            {/* Continue Card — shown only when there's a genuinely unsaved palette on a new image */}
+            {isPaletteDirty && hasGeneratedPalette && !isFromSavedPalette && (
                 <Animated.View entering={FadeInDown.delay(300).duration(400)}>
                     <Pressable
                         style={styles.continueCard}

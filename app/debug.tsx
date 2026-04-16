@@ -46,7 +46,7 @@ export default function DebugScreen() {
                 <Text style={styles.subtitle}>Drag the box below to test Reanimated & Gestures</Text>
 
                 <GestureDetector gesture={gesture}>
-                    <Animated.View style={[styles.box, animatedStyles]} />
+                    <Animated.View style={[styles.box, animatedStyles as any]} />
                 </GestureDetector>
 
                 <Link href="/" style={styles.link}>

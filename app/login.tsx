@@ -7,13 +7,19 @@ import { useProjectStore } from '@/store/useProjectStore';
 import { showToast } from '@/utils/toast';
 import { AntDesign } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { Palette } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+GoogleSignin.configure({
+    iosClientId: '1049473771008-edc1ltging084fulv8be7ficpa3nojfl.apps.googleusercontent.com',
+    webClientId: '1049473771008-8gr0qb1urkkkcghb04k3qs4qcaga0i45.apps.googleusercontent.com',
+});
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -25,6 +31,8 @@ export default function LoginScreen() {
     const [fullName, setFullName] = useState('');
     const [emailLoading, setEmailLoading] = useState(false);
     const [googleLoading, setGoogleLoading] = useState(false);
+    // Stays true after successful sign-in to prevent login screen flash
+    const [signedIn, setSignedIn] = useState(false);
     // Auto-switch to Sign Up if coming from "Create Account" flow
     const [isSignUp, setIsSignUp] = useState(pendingUpgrade);
 
@@ -99,7 +107,7 @@ export default function LoginScreen() {
                 });
                 console.log('Sign In Result:', { data, error });
                 if (error) throw error;
-                // Navigation handled by _layout.tsx redirect logic
+                setSignedIn(true);
             }
         } catch (error: any) {
             console.error('Auth Error:', error);
@@ -113,41 +121,40 @@ export default function LoginScreen() {
     const performGoogleSignIn = async () => {
         setGoogleLoading(true);
         try {
-            const { data, error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: 'palettepro://auth/callback',
-                    skipBrowserRedirect: true,
-                    queryParams: {
-                        prompt: 'select_account',
-                    },
-                },
-            });
-            if (error) throw error;
+            await GoogleSignin.hasPlayServices();
 
-            if (data?.url) {
-                const result = await WebBrowser.openAuthSessionAsync(data.url, 'palettepro://');
+            // Generate nonce: raw for Supabase, SHA-256 hash for Google
+            const rawNonce = Crypto.randomUUID();
+            const hashedNonce = await Crypto.digestStringAsync(
+                Crypto.CryptoDigestAlgorithm.SHA256,
+                rawNonce,
+            );
 
-                if (result.type === 'success' && result.url) {
-                    const url = result.url;
-                    // Extract access_token and refresh_token from the hash
-                    const access_token = url.match(/access_token=([^&]*)/)?.[1];
-                    const refresh_token = url.match(/refresh_token=([^&]*)/)?.[1];
+            const response = await GoogleSignin.signIn({ nonce: hashedNonce } as any);
 
-                    if (access_token && refresh_token) {
-                        const { error: sessionError } = await supabase.auth.setSession({
-                            access_token,
-                            refresh_token,
-                        });
-                        if (sessionError) throw sessionError;
-                    }
-                } else if (result.type === 'cancel') {
-                    setGoogleLoading(false);
+            if (response.data?.idToken) {
+                // Show spinner immediately after Google sheet dismisses
+                setSignedIn(true);
+                const { error } = await supabase.auth.signInWithIdToken({
+                    provider: 'google',
+                    token: response.data.idToken,
+                    nonce: rawNonce,
+                });
+                if (error) {
+                    setSignedIn(false);
+                    throw error;
                 }
+            } else {
+                throw new Error('No ID token received from Google');
             }
         } catch (error: any) {
-            console.error('Google Auth Error:', error);
-            showToast(error.message || 'Google Sign-In failed');
+            if (error.code === 'SIGN_IN_CANCELLED' || error.message?.includes('canceled')) {
+                console.log('Google Sign-In canceled by user');
+            } else {
+                console.error('Google Auth Error:', error);
+                showToast(error.message || 'Google Sign-In failed');
+            }
+        } finally {
             setGoogleLoading(false);
         }
     };
@@ -162,16 +169,15 @@ export default function LoginScreen() {
             });
 
             if (credential.identityToken) {
-                const { error, data } = await supabase.auth.signInWithIdToken({
+                setSignedIn(true);
+                const { error } = await supabase.auth.signInWithIdToken({
                     provider: 'apple',
                     token: credential.identityToken,
                 });
 
-                if (error) throw error;
-
-                if (data.session) {
-                    // Navigate or handle success same as other methods if needed
-                    // AuthContext should pick it up automatically
+                if (error) {
+                    setSignedIn(false);
+                    throw error;
                 }
             } else {
                 throw new Error('No identityToken.');
@@ -186,6 +192,14 @@ export default function LoginScreen() {
             }
         }
     };
+
+    if (signedIn) {
+        return (
+            <View style={{ flex: 1, backgroundColor: '#0A0A0B', justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#3E63DD" />
+            </View>
+        );
+    }
 
     return (
         <SafeAreaView className="flex-1 bg-[#0A0A0B]" edges={['top', 'bottom']}>

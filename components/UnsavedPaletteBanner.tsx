@@ -4,29 +4,31 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { usePro } from '@/context/ProContext';
 import { getPaletteCount } from '@/services/paletteService';
-import { useEngagementStore } from '@/store/useEngagementStore';
+import { useProjectStore } from '@/store/useProjectStore';
 
 export function UnsavedPaletteBanner() {
-    const unsavedPaletteTimestamp = useEngagementStore((s) => s.unsavedPaletteTimestamp);
+    const isPaletteDirty = useProjectStore((s) => s.isPaletteDirty);
+    const generatedPalette = useProjectStore((s) => s.generatedPalette);
+    const isFromSavedPalette = useProjectStore((s) => s.isFromSavedPalette);
     const { isPro } = usePro();
     const [dismissed, setDismissed] = useState(false);
     const [savedCount, setSavedCount] = useState<number | null>(null);
 
+    // Reset dismissed state when dirty flag changes (new generation)
     useEffect(() => {
-        if (!isPro && unsavedPaletteTimestamp) {
+        if (isPaletteDirty) {
+            setDismissed(false);
+        }
+    }, [isPaletteDirty]);
+
+    useEffect(() => {
+        if (!isPro && isPaletteDirty) {
             getPaletteCount().then(setSavedCount).catch(() => {});
         }
-    }, [isPro, unsavedPaletteTimestamp]);
+    }, [isPro, isPaletteDirty]);
 
-    if (!unsavedPaletteTimestamp || dismissed) {
-        return null;
-    }
-
-    // Only show if the unsaved palette is within the last 24 hours
-    const timestamp = new Date(unsavedPaletteTimestamp).getTime();
-    const now = Date.now();
-    const twentyFourHours = 24 * 60 * 60 * 1000;
-    if (now - timestamp > twentyFourHours) {
+    // Only show when there's a genuinely unsaved palette on a NEW image (not a saved one)
+    if (!isPaletteDirty || isFromSavedPalette || generatedPalette.length === 0 || dismissed) {
         return null;
     }
 

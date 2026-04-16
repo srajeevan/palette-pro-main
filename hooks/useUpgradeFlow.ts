@@ -15,7 +15,7 @@ export const useUpgradeFlow = () => {
      * @param onAccessGranted Callback to run if user is allowed to proceed (e.g. show paywall or navigate to feature)
      * @param options Optional callbacks for handling UI state (e.g. closing modals)
      */
-    const triggerUpgradeFlow = (onAccessGranted: () => void) => {
+    const triggerUpgradeFlow = (onAccessGranted: () => void, options?: { onGuestIntent?: () => void }) => {
         if (isGuest) {
             // Phase 5.2: Conditional Logic - Show Toast but Allow Access
             // Use global toast ref

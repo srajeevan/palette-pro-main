@@ -8,7 +8,7 @@ const POSTHOG_HOST = 'https://us.i.posthog.com';
 let posthog: PostHog | null = null;
 
 export async function initAnalytics(): Promise<void> {
-    if (POSTHOG_API_KEY === 'YOUR_POSTHOG_API_KEY') {
+    if ((POSTHOG_API_KEY as string) === 'YOUR_POSTHOG_API_KEY') {
         console.log('[Analytics] PostHog API key not set — skipping init');
         return;
     }

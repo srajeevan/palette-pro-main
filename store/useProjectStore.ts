@@ -21,11 +21,15 @@ interface ProjectState {
     pickedColors: string[]; // Manual picks
     generatedPalette: string[]; // Auto-generated
     colorCount: number; // Preference (3-12)
+    isPaletteDirty: boolean; // True when palette has unsaved changes
+    isFromSavedPalette: boolean; // True when viewing a palette loaded from saved data
 
     addPickedColor: (color: string) => void;
     removePickedColor: (color: string) => void;
-    setGeneratedPalette: (colors: string[]) => void;
+    setGeneratedPalette: (colors: string[], dirty?: boolean) => void;
     setColorCount: (count: number) => void;
+    markPaletteSaved: () => void;
+    markPaletteClean: () => void;
 }
 
 export const useProjectStore = create<ProjectState>()(
@@ -34,7 +38,7 @@ export const useProjectStore = create<ProjectState>()(
             imageUri: null,
             imageDimensions: null,
             isUploading: false,
-            setImage: (uri, dimensions) => set({ imageUri: uri, imageDimensions: dimensions }),
+            setImage: (uri, dimensions) => set({ imageUri: uri, imageDimensions: dimensions, isFromSavedPalette: false }),
             setImageUri: (uri) => set({ imageUri: uri }),
             setUploading: (loading) => set({ isUploading: loading }),
             resetProject: () => set({
@@ -42,21 +46,27 @@ export const useProjectStore = create<ProjectState>()(
                 imageDimensions: null,
                 isUploading: false,
                 pickedColors: [],
-                generatedPalette: []
+                generatedPalette: [],
+                isPaletteDirty: false,
+                isFromSavedPalette: false,
             }),
 
             pickedColors: [],
             generatedPalette: [],
             colorCount: 6,
+            isPaletteDirty: false,
+            isFromSavedPalette: false,
 
             addPickedColor: (color) => set((state) => ({ pickedColors: [...state.pickedColors, color] })),
             removePickedColor: (color) => set((state) => ({ pickedColors: state.pickedColors.filter(c => c !== color) })),
-            setGeneratedPalette: (colors) => {
+            setGeneratedPalette: (colors, dirty = false) => {
                 console.log('🏪 Store - setGeneratedPalette called with:', colors);
                 console.log('🏪 Store - setGeneratedPalette colors.length:', colors.length);
-                set({ generatedPalette: colors });
+                set(dirty ? { generatedPalette: colors, isPaletteDirty: true } : { generatedPalette: colors });
             },
             setColorCount: (count) => set({ colorCount: count }),
+            markPaletteSaved: () => set({ isPaletteDirty: false, isFromSavedPalette: true }),
+            markPaletteClean: () => set({ isPaletteDirty: false }),
         }),
         {
             name: 'palette-storage',

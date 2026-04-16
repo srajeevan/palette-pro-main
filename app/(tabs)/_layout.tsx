@@ -18,8 +18,13 @@ export default function TabLayout() {
   const pathname = usePathname();
   const prevPathname = useRef(pathname);
 
+  const clearUnsavedPalette = useEngagementStore((s) => s.clearUnsavedPalette);
+
   useEffect(() => {
     recordActivity();
+
+    // Clear legacy unsaved palette timestamp (now tracked via isPaletteDirty in project store)
+    clearUnsavedPalette();
 
     // Check for app updates
     (async () => {
