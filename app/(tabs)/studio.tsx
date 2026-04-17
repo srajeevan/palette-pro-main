@@ -167,10 +167,14 @@ export default function PickerScreen() {
     if (isFocused && imageUri && canvasLayout.width > 0 && canvasLayout.height > 0) {
       // Small delay to ensure Skia image is rendered on canvas
       const timer = setTimeout(() => {
-        const centerX = canvasLayout.width / 2;
-        const centerY = canvasLayout.height / 2;
-        handleColorChange(centerX, centerY);
-      }, 500); // 500ms delay to be safe
+        try {
+          const centerX = canvasLayout.width / 2;
+          const centerY = canvasLayout.height / 2;
+          handleColorChange(centerX, centerY);
+        } catch {
+          // Skia view not ready yet — safe to ignore
+        }
+      }, 800); // 800ms delay to be safe
       return () => clearTimeout(timer);
     }
   }, [imageUri, canvasLayout, isFocused]);

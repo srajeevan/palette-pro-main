@@ -99,7 +99,12 @@ export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef, ColorSkiaCanvasPro
             }
 
             // 3. Read Pixel from Canvas Snapshot
-            const snapshot = internalCanvasRef.current.makeImageSnapshot();
+            let snapshot;
+            try {
+                snapshot = internalCanvasRef.current.makeImageSnapshot();
+            } catch {
+                return null; // Skia view not ready yet
+            }
             if (snapshot) {
                 const density = PixelRatio.get();
                 const physicalX = Math.round(x * density);
