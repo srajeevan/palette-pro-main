@@ -1,8 +1,8 @@
 import { AppText } from '@/components/AppText';
 import { useAuth } from '@/context/AuthContext';
 import { FeatureRequest } from '@/services/featureRequestService';
-import { ChevronUp } from 'lucide-react-native';
-import React from 'react';
+import { ChevronUp, MessageCircle } from 'lucide-react-native';
+import React, { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 interface IdeaCardProps {
@@ -14,9 +14,10 @@ interface IdeaCardProps {
 export const IdeaCard = ({ item, hasVoted, onVote }: IdeaCardProps) => {
     const { user } = useAuth();
     const isOwn = user?.id === item.user_id;
+    const [expanded, setExpanded] = useState(false);
 
     return (
-        <View style={styles.card}>
+        <Pressable onPress={() => setExpanded((prev) => !prev)} style={styles.card}>
             {/* Vote Button */}
             <Pressable
                 onPress={() => onVote(item.id)}
@@ -32,7 +33,7 @@ export const IdeaCard = ({ item, hasVoted, onVote }: IdeaCardProps) => {
             {/* Content */}
             <View style={styles.content}>
                 <View style={styles.titleRow}>
-                    <AppText style={styles.title} numberOfLines={2}>{item.title}</AppText>
+                    <AppText style={styles.title} numberOfLines={expanded ? undefined : 2}>{item.title}</AppText>
                     {isOwn && (
                         <View style={styles.badge}>
                             <AppText style={styles.badgeText}>You</AppText>
@@ -44,11 +45,24 @@ export const IdeaCard = ({ item, hasVoted, onVote }: IdeaCardProps) => {
                         </View>
                     )}
                 </View>
-                <AppText style={styles.description} numberOfLines={2}>
+                <AppText style={styles.description} numberOfLines={expanded ? undefined : 2}>
                     {item.description}
                 </AppText>
+
+                {/* Developer Response */}
+                {item.dev_response && (
+                    <View style={styles.devResponse}>
+                        <View style={styles.devResponseHeader}>
+                            <MessageCircle size={12} color="#3E63DD" />
+                            <AppText style={styles.devResponseLabel}>Developer</AppText>
+                        </View>
+                        <AppText style={styles.devResponseText} numberOfLines={expanded ? undefined : 2}>
+                            {item.dev_response}
+                        </AppText>
+                    </View>
+                )}
             </View>
-        </View>
+        </Pressable>
     );
 };
 
@@ -106,5 +120,30 @@ const styles = StyleSheet.create({
         fontFamily: 'Inter_500Medium',
         fontSize: 11,
         color: '#FFFFFF',
+    },
+    devResponse: {
+        marginTop: 10,
+        backgroundColor: '#1A1A2E',
+        borderLeftWidth: 2,
+        borderLeftColor: '#3E63DD',
+        borderRadius: 8,
+        padding: 10,
+    },
+    devResponseHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        marginBottom: 4,
+    },
+    devResponseLabel: {
+        fontFamily: 'Inter_700Bold',
+        fontSize: 11,
+        color: '#3E63DD',
+    },
+    devResponseText: {
+        fontFamily: 'Inter_400Regular',
+        fontSize: 13,
+        color: '#D4D4D8',
+        lineHeight: 18,
     },
 });

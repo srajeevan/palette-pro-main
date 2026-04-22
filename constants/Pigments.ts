@@ -190,17 +190,11 @@ export const UNIVERSAL_PALETTE: Pigment[] = [
         type: 'Secondary', tintingStrength: 0.5, opacity: 1.0,
     },
 
-    // ── BLACKS ──────────────────────────────────────────────────────────
-    {
-        name: 'Ivory Black', cin: 'PBk9',
-        hex: '#1A1A1A', rgb: { r: 26, g: 26, b: 26 },
-        type: 'Neutral', tintingStrength: 1.0, opacity: 1.0,
-    },
-    {
-        name: 'Mars Black', cin: 'PBk11',
-        hex: '#262420', rgb: { r: 38, g: 36, b: 32 },
-        type: 'Neutral', tintingStrength: 1.0, opacity: 1.0,
-    },
+    // ── DARKS ───────────────────────────────────────────────────────────
+    // Ivory Black and Mars Black removed — pure blacks produce impractical
+    // ratios (e.g. 1:57) and look dead on canvas. Chromatic darks like
+    // Burnt Umber + Ultramarine or Phthalo Blue + Burnt Sienna produce
+    // richer, more painterly results. Payne's Gray stays as a chromatic dark.
     {
         name: "Payne's Gray", cin: 'PBk9+PB29',
         hex: '#2C3040', rgb: { r: 44, g: 48, b: 64 },

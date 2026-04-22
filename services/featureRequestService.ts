@@ -7,6 +7,8 @@ export interface FeatureRequest {
     description: string;
     status: 'pending' | 'approved' | 'rejected';
     vote_count: number;
+    dev_response: string | null;
+    dev_response_at: string | null;
     created_at: string;
     updated_at: string;
 }

@@ -7,7 +7,7 @@
  * Pipeline:
  *   1. Single pigments — test all, return if ΔE₀₀ ≤ 2.0
  *   2. Two-pigment mixes — spectralMix2 at 5 ratio steps per pair
- *   3. Two-pigment tints/shades — color + white/black modifier
+ *   3. Two-pigment tints/shades — color + white/dark modifier
  *   4. Three-pigment mixes — only if ΔE₀₀ > 5 (expensive)
  *   5. Tinting-strength–adjusted volume ratios for display
  *
@@ -152,12 +152,10 @@ function generateReasoning(
     const pigmentC = labChroma(pigmentLab);
     const dE = result.distance;
 
-    // Near-black / very dark
+    // Very dark target — single pigment result means the engine's best
+    // chromatic mix still landed on a single dark pigment (e.g. Payne's Gray).
     if (targetL < 5) {
-        if (targetC < ACHROMATIC_CHROMA) {
-            return `At this darkness (L*=${targetL.toFixed(1)}), the color is effectively pure black with no visible undertone. ${pigment.name} is the closest single pigment — mixing would not improve the match.`;
-        }
-        return `Very dark color with a subtle undertone. ${pigment.name} is the closest match at ΔE ${dE.toFixed(1)}.`;
+        return `Very dark color. ${pigment.name} is the closest match at ΔE ${dE.toFixed(1)}.`;
     }
 
     // Near-white
@@ -278,16 +276,24 @@ export const calculateMix = (
     //   a) is achromatic (neutral black/white/gray), or
     //   b) has a hue angle > 15° away from target
     // Then we flag this so multi-pigment recipes get a reduced penalty.
-    if (bestResult.ingredients.length === 1 && targetIsChromatic) {
+    //
+    // For dark colors (L* < 15): if the best single pigment is a neutral black,
+    // ALWAYS flag hue mismatch — even if the target appears achromatic on screen.
+    // Painters mix darks from chromatic pigments; pure black looks dead on canvas.
+    // Only exception: truly pure black (L* < 1) handled by early-return above.
+    if (bestResult.ingredients.length === 1) {
         const bestPigmentIdx = palette.findIndex(p => p.hex === bestResult.closestColor);
         if (bestPigmentIdx >= 0) {
             const pigmentChroma = labChroma(pigmentLabs[bestPigmentIdx]);
             const pigmentHue = labHue(pigmentLabs[bestPigmentIdx]);
 
-            if (pigmentChroma < ACHROMATIC_CHROMA) {
+            if (targetLab.L < 15 && pigmentChroma < ACHROMATIC_CHROMA) {
+                // Dark target + neutral black pigment — always prefer a chromatic mix
+                singlePigmentHueMismatch = true;
+            } else if (targetIsChromatic && pigmentChroma < ACHROMATIC_CHROMA) {
                 // Achromatic pigment for a chromatic target — always a hue mismatch
                 singlePigmentHueMismatch = true;
-            } else if (hueDifference(targetHue, pigmentHue) > HUE_MISMATCH_THRESHOLD) {
+            } else if (targetIsChromatic && hueDifference(targetHue, pigmentHue) > HUE_MISMATCH_THRESHOLD) {
                 singlePigmentHueMismatch = true;
             }
         }
@@ -360,18 +366,18 @@ export const calculateMix = (
         return finalize(bestResult);
     }
 
-    // ── Step 3: Tints & Shades (color + white/black) ──────────────────────
+    // ── Step 3: Tints & Shades (color + white/dark modifier) ──────────────
 
     const modifierIndices: number[] = [];
     const colorIndices: number[] = [];
     for (let i = 0; i < palette.length; i++) {
         const n = palette[i].name;
-        if (n.includes('White') || n.includes('Black') || n === "Payne's Gray") {
+        if (n.includes('White') || n === "Payne's Gray") {
             modifierIndices.push(i);
         } else {
             colorIndices.push(i);
-            // Dark earth tones double as modifiers for warm black/dark mixes
-            if (n === 'Burnt Umber' || n === 'Raw Umber') {
+            // Dark earth tones and deep blues double as modifiers for chromatic darks
+            if (n === 'Burnt Umber' || n === 'Raw Umber' || n === 'Prussian Blue') {
                 modifierIndices.push(i);
             }
         }
