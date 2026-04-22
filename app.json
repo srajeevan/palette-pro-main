@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "palette-pro",
+    "name": "PalettePro",
     "slug": "palette-pro",
     "version": "1.0.2",
     "orientation": "portrait",
@@ -9,8 +9,6 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash-icon.png",
-      "resizeMode": "contain",
       "backgroundColor": "#0A0A0B"
     },
     "ios": {

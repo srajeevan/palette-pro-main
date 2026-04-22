@@ -135,7 +135,7 @@ export const UpdatePromptModal = ({ visible, updateInfo, onDismiss }: UpdateProm
 /**
  * Decides whether to show the update prompt based on dismiss history.
  *
- * Minor updates: dismissed once for a version → never show again for that version.
+ * Minor updates: show up to 3 times, with a 3-day cooldown between each.
  * Feature updates: show up to 3 times, with a 5-day cooldown between each.
  */
 export async function shouldShowUpdatePrompt(updateInfo: UpdateInfo | null): Promise<boolean> {
@@ -152,15 +152,12 @@ export async function shouldShowUpdatePrompt(updateInfo: UpdateInfo | null): Pro
 
         const isFeature = updateInfo.type === 'feature' && updateInfo.features.length > 0;
 
-        if (!isFeature) {
-            // Minor: dismissed once → done
-            return false;
-        }
-
-        // Feature: max 3 dismissals, 5-day cooldown
+        // Both types: max 3 dismissals, but different cooldowns
         if (state.count >= 3) return false;
-        const fiveDays = 5 * 24 * 60 * 60 * 1000;
-        return Date.now() - state.lastDismissedAt >= fiveDays;
+        const cooldown = isFeature
+            ? 5 * 24 * 60 * 60 * 1000  // 5 days for feature
+            : 3 * 24 * 60 * 60 * 1000; // 3 days for minor
+        return Date.now() - state.lastDismissedAt >= cooldown;
     } catch {
         return true;
     }

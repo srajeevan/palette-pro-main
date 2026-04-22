@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { useOnboardingStore } from '@/store/useOnboardingStore';
 import { Session, User } from '@supabase/supabase-js';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import Purchases from 'react-native-purchases';
@@ -83,35 +84,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const deleteAccount = async () => {
         try {
             // 1. Clean up the user's reference images from R2 + Supabase Storage
-            //    BEFORE deleting the auth user — once delete_user runs, the JWT
-            //    is invalid and we can no longer authorize the cleanup call.
-            //    Failures here are logged but do NOT block account deletion;
-            //    the user has asked to leave and we must honour that.
+            //    Best-effort with 10s timeout — never blocks account deletion
             try {
-                const { data, error: cleanupErr } = await supabase.functions.invoke(
-                    'delete-user-storage',
-                    { body: {} },
-                );
-                if (cleanupErr) {
-                    console.warn('[deleteAccount] storage cleanup failed:', cleanupErr);
-                } else {
-                    console.log('[deleteAccount] storage cleanup:', data);
-                }
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 10000);
+                await supabase.functions.invoke('delete-user-storage', {
+                    body: {},
+                }).then(({ error: cleanupErr }) => {
+                    clearTimeout(timeout);
+                    if (cleanupErr) console.warn('[deleteAccount] storage cleanup failed:', cleanupErr);
+                }).catch(() => {
+                    clearTimeout(timeout);
+                });
             } catch (e) {
-                console.warn('[deleteAccount] storage cleanup threw:', e);
+                console.warn('[deleteAccount] storage cleanup skipped:', e);
             }
 
             // 2. Call Supabase RPC to delete user data & auth
             const { error } = await supabase.rpc('delete_user');
             if (error) throw error;
 
-            // 3. Sign Out locally to clean up state
+            // 3. Reset onboarding so next signup shows onboarding flow
+            //    Don't removeItem — _layout.tsx treats missing key as "existing user updating app"
+            //    Instead, persist the reset state so hasCompletedOnboarding = false is stored
+            useOnboardingStore.getState().resetOnboarding();
+
+            // 4. Sign Out locally to clean up state
             await signOut();
             return { error: null };
         } catch (error: any) {
             console.error('Delete Account Error:', error);
-            // Fallback: If RPC fails (e.g. doesn't exist), try standard signout and warn
-            // In production, we MUST ensure the RPC exists.
             return { error };
         }
     };

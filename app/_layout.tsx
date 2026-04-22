@@ -11,6 +11,7 @@ import '../global.css';
 // Initialize Sentry as early as possible
 initCrashReporting();
 
+import { AnimatedSplash } from '@/components/AnimatedSplash';
 import { PaywallModal } from '@/components/PaywallModal';
 import { useColorScheme } from '@/components/useColorScheme';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
@@ -49,6 +50,7 @@ function RootLayout() {
     Inter_700Bold,
     ...FontAwesome.font,
   });
+  const [showSplash, setShowSplash] = React.useState(true);
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
@@ -57,6 +59,7 @@ function RootLayout() {
 
   useEffect(() => {
     if (loaded) {
+      // Hide the native static splash — our animated one takes over
       SplashScreen.hideAsync();
       // Initialize PostHog analytics
       require('@/services/analytics').initAnalytics();
@@ -67,7 +70,12 @@ function RootLayout() {
     return null;
   }
 
-  return <RootLayoutNav />;
+  return (
+    <>
+      <RootLayoutNav />
+      {showSplash && <AnimatedSplash onFinish={() => setShowSplash(false)} />}
+    </>
+  );
 }
 
 export default Sentry.wrap(RootLayout);

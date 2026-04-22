@@ -195,7 +195,7 @@ export const MixingRecipeModal = ({ visible, recipeData, reasoning, onClose, onU
                             {ingredients.length > 0 ? (
                                 <>
                                     {/* Left Column: Chart */}
-                                    <View style={[styles.chartColumn, !isViewAllowed && { opacity: 0.1 }]}>
+                                    <View style={styles.chartColumn}>
                                         <MultiSegmentDonut data={ingredients} size={140} strokeWidth={16} />
                                     </View>
 
@@ -216,17 +216,20 @@ export const MixingRecipeModal = ({ visible, recipeData, reasoning, onClose, onU
                                         ))}
                                     </View>
 
-                                    {/* Locked Overlay */}
+                                    {/* Locked Overlay with Blur */}
                                     {!isViewAllowed && (
-                                        <View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.1)' }]}>
-                                            <TouchableOpacity
-                                                onPress={handleUnlockPress}
-                                                style={{ backgroundColor: '#F59E0B', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } }}
-                                            >
-                                                <Text style={{ fontWeight: 'bold', color: 'black', marginRight: 6 }}>
-                                                    {dailyLimitReached ? "🔒 Daily Limit Reached" : "🔒 Unlock Recipe"}
-                                                </Text>
-                                            </TouchableOpacity>
+                                        <View style={[StyleSheet.absoluteFill, { overflow: 'hidden', borderRadius: 12 }]}>
+                                            <BlurView intensity={25} tint="light" style={StyleSheet.absoluteFill} />
+                                            <View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+                                                <TouchableOpacity
+                                                    onPress={handleUnlockPress}
+                                                    style={{ backgroundColor: '#F59E0B', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } }}
+                                                >
+                                                    <Text style={{ fontWeight: 'bold', color: 'black', marginRight: 6 }}>
+                                                        {dailyLimitReached ? "🔒 Daily Limit Reached" : "🔒 Unlock Recipe"}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            </View>
                                         </View>
                                     )}
                                 </>

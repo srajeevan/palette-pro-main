@@ -10,10 +10,9 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { Palette } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
+import Animated, { Easing, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 GoogleSignin.configure({
@@ -214,16 +213,19 @@ export default function LoginScreen() {
                 >
                     {/* Header Section */}
                     <Animated.View
-                        entering={FadeInDown.springify().damping(12).delay(100)}
+                        entering={FadeInDown.duration(500).easing(Easing.out(Easing.cubic)).delay(100)}
                         className="items-center mb-12"
                     >
-                        {/* Standard Branding - Always Visible */}
-                        <View className="bg-[#1C1C1E] p-4 rounded-3xl mb-6 border border-[#28282A]">
-                            <Palette size={40} color="#fff" strokeWidth={1.5} />
-                        </View>
+                        {/* App Icon */}
+                        <Image
+                            source={require('@/assets/images/splash-p.jpg')}
+                            style={{ width: 80, height: 80, borderRadius: 20, marginBottom: 24 }}
+                        />
                         <AppText className="text-4xl text-center mb-3 text-white" style={{ fontFamily: 'PlayfairDisplay_700Bold', color: '#FFFFFF' }}>
                             PalettePro
                         </AppText>
+                        {/* Gold accent line */}
+                        <View style={{ width: 30, height: 2, backgroundColor: '#C4A44A', borderRadius: 1, marginBottom: 12 }} />
                         <AppText className="text-center text-lg text-[#8E8E93]" style={{ fontFamily: 'Inter_400Regular', color: '#8E8E93' }}>
                             Your digital artist companion.
                         </AppText>
@@ -231,7 +233,7 @@ export default function LoginScreen() {
 
                     {/* Form Section */}
                     <Animated.View
-                        entering={FadeInDown.springify().damping(12).delay(200)}
+                        entering={FadeInDown.duration(500).easing(Easing.out(Easing.cubic)).delay(200)}
                         className="space-y-5"
                     >
                         {isSignUp && (
@@ -297,7 +299,7 @@ export default function LoginScreen() {
 
                     {/* Divider */}
                     <Animated.View
-                        entering={FadeInDown.springify().damping(12).delay(300)}
+                        entering={FadeInDown.duration(500).easing(Easing.out(Easing.cubic)).delay(300)}
                         className="my-10 flex-row items-center"
                     >
                         <View className="flex-1 h-[1px] bg-[#28282A]" />
@@ -307,7 +309,7 @@ export default function LoginScreen() {
 
                     {/* Guest Action */}
                     <Animated.View
-                        entering={FadeInDown.springify().damping(12).delay(400)}
+                        entering={FadeInDown.duration(500).easing(Easing.out(Easing.cubic)).delay(400)}
                         className="items-center space-y-4"
                     >
                         {Platform.OS === 'ios' && (
@@ -328,6 +330,7 @@ export default function LoginScreen() {
                             variant="outline"
                             className="w-full border-[#28282A] bg-[#1C1C1E] mb-4"
                             textStyle={{ color: '#FFFFFF' }}
+                            icon={<AntDesign name="google" size={20} color="white" />}
                         />
 
                         <AppButton

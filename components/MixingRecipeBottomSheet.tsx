@@ -6,8 +6,9 @@ import { showToast } from '@/utils/toast';
 import { checkDailyMixingLimit, incrementDailyMixingCount } from '@/utils/usage';
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
 import { Info, X } from 'lucide-react-native';
+import { BlurView } from 'expo-blur';
 import React, { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { AppText } from './AppText';
 import { RecipeLimitOverlay } from './RecipeLimitOverlay';
@@ -218,17 +219,28 @@ export const MixingRecipeBottomSheet = forwardRef<BottomSheetModal, MixingRecipe
                                             )}
                                         </>
                                     ) : (
-                                        <AppText
-                                            style={{
-                                                fontFamily: 'Inter_400Regular',
-                                                fontSize: 14,
-                                                color: '#71717A',
-                                                textAlign: 'center',
-                                                paddingVertical: 12,
-                                            }}
-                                        >
-                                            Recipe locked — daily limit reached
-                                        </AppText>
+                                        <View style={{ position: 'relative', minHeight: 60 }}>
+                                            {/* Show blurred placeholder text */}
+                                            <AppText
+                                                style={{
+                                                    fontFamily: 'PlayfairDisplay_400Regular',
+                                                    fontSize: 20,
+                                                    color: '#E5E5E5',
+                                                    lineHeight: 30,
+                                                }}
+                                            >
+                                                {mixResult?.recipe || 'Recipe unavailable'}
+                                            </AppText>
+                                            {/* Blur overlay */}
+                                            <View style={[StyleSheet.absoluteFill, { overflow: 'hidden', borderRadius: 8 }]}>
+                                                <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+                                                <View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(28,28,30,0.3)' }]}>
+                                                    <AppText style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: '#A1A1AA' }}>
+                                                        🔒 Daily limit reached
+                                                    </AppText>
+                                                </View>
+                                            </View>
+                                        </View>
                                     )}
                                 </View>
                             </Animated.View>

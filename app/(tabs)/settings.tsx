@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { supabase } from '@/lib/supabase';
 import { Crown, HelpCircle, Lightbulb, Lock, LogOut, MessageSquare, Pencil, User, Zap } from 'lucide-react-native';
+import Constants from 'expo-constants';
 import React, { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -83,14 +84,17 @@ export default function SettingsScreen() {
                     style: "destructive",
                     onPress: async () => {
                         setIsDeleting(true);
-                        resetOnboarding();
-                        await AsyncStorage.removeItem('onboarding-storage');
-                        const { error } = await deleteAccount();
-                        setIsDeleting(false);
-                        if (error) {
-                            Alert.alert('Error', 'Failed to delete account. Please try again or contact support.');
-                        } else {
-                            showToast("Your account has been deleted.");
+                        try {
+                            const { error } = await deleteAccount();
+                            setIsDeleting(false);
+                            if (error) {
+                                Alert.alert('Error', 'Failed to delete account. Please try again or contact support.');
+                            } else {
+                                showToast("Your account has been deleted.");
+                            }
+                        } catch (e) {
+                            setIsDeleting(false);
+                            Alert.alert('Error', 'Something went wrong. Please try again.');
                         }
                     }
                 }
@@ -235,7 +239,12 @@ export default function SettingsScreen() {
                         />
                     </View>
 
-                    <View style={{ height: 120 }} />
+                    {/* Version */}
+                    <AppText style={styles.versionLabel}>
+                        PalettePro v{Constants.expoConfig?.version || '1.0.0'}
+                    </AppText>
+
+                    <View style={{ height: 80 }} />
                 </ScrollView>
 
                 {/* Deleting overlay */}
@@ -366,5 +375,12 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 16,
         fontFamily: 'Inter_500Medium',
+    },
+    versionLabel: {
+        fontFamily: 'Inter_400Regular',
+        fontSize: 12,
+        color: '#52525B',
+        textAlign: 'center',
+        marginTop: 8,
     },
 });
