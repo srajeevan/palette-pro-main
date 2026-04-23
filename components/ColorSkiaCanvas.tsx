@@ -99,9 +99,14 @@ export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef, ColorSkiaCanvasPro
             }
 
             // 3. Read Pixel from Canvas Snapshot
+            //    Guard: ensure canvas has valid layout dimensions before calling
+            //    makeImageSnapshot — Metal will SIGABRT on 0 or negative sizes,
+            //    and JS try/catch cannot intercept a native abort.
             let snapshot;
             try {
-                snapshot = internalCanvasRef.current.makeImageSnapshot();
+                const canvasNode = internalCanvasRef.current;
+                if (!canvasNode || typeof canvasNode.makeImageSnapshot !== 'function') return null;
+                snapshot = canvasNode.makeImageSnapshot();
             } catch {
                 return null; // Skia view not ready yet
             }

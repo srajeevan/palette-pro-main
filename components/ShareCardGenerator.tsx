@@ -30,13 +30,15 @@ export const ShareCardGenerator = forwardRef<ShareCardGeneratorRef, ShareCardGen
 
         useImperativeHandle(ref, () => ({
             generate: async () => {
-                if (!canvasRef.current) return null;
+                const canvas = canvasRef.current;
+                if (!canvas || typeof canvas.makeImageSnapshot !== 'function') return null;
+                // Ensure Skia resources are loaded before snapshot — without
+                // this, the Metal texture may get invalid (0/-1) dimensions
+                // causing a SIGABRT that JS try/catch cannot intercept.
+                if (!skiaImage || !interFont || !playfairFont || !hexFont) return null;
 
                 try {
-                    // Slight delay to ensure render? Skia is usually synchronous once resources loaded.
-                    // But `makeImageSnapshot` is the imperative way on the Skia Ref.
-                    // However, react-native-skia imperative snapshot on <Canvas> ref:
-                    const image = await canvasRef.current.makeImageSnapshot();
+                    const image = await canvas.makeImageSnapshot();
                     if (image) {
                         const base64 = image.encodeToBase64();
                         return `data:image/png;base64,${base64}`;
@@ -164,12 +166,10 @@ export const ShareCardGenerator = forwardRef<ShareCardGeneratorRef, ShareCardGen
 const styles = StyleSheet.create({
     hiddenContainer: {
         position: 'absolute',
-        top: 0,
-        left: 0,
-        opacity: 0, // Hidden visually but rendered
-        width: 1, // Minimize impact on layout? No, canvas needs size.
-        height: 1,
-        overflow: 'hidden',
-        zIndex: -100
+        top: -9999,
+        left: -9999,
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
+        zIndex: -100,
     }
 });
