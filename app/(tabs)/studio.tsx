@@ -2,18 +2,21 @@ import { AppHeader } from '@/components/AppHeader';
 import { AppText } from '@/components/AppText';
 import { ColorPointer } from '@/components/ColorPointer';
 import { ColorSkiaCanvas, ColorSkiaCanvasRef } from '@/components/ColorSkiaCanvas';
+import { GridOverlay } from '@/components/GridOverlay';
+import { GridSelectorSheet } from '@/components/GridSelectorSheet';
 import { MixingRecipeModal } from '@/components/MixingRecipeModal';
 import { PaywallModal } from '@/components/PaywallModal';
 import { SceneTransition } from '@/components/SceneTransition';
 import { UploadBottomSheet } from '@/components/UploadBottomSheet';
 import { UploadPlaceholderView } from '@/components/UploadPlaceholderView';
 import { useImagePicker } from '@/services/useImagePicker';
+import { useGridStore } from '@/store/useGridStore';
 import { useProjectStore } from '@/store/useProjectStore';
 import { getContrastColor } from '@/utils/colorUtils';
 import { calculateMix, MixResult } from '@/utils/mixingEngine';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useIsFocused } from '@react-navigation/native';
-import { ImagePlus } from 'lucide-react-native';
+import { Grid3x3, ImagePlus } from 'lucide-react-native';
 import React, { useCallback, useRef, useState } from 'react';
 import { Dimensions, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -30,9 +33,11 @@ const INITIAL_HEIGHT = SCREEN_HEIGHT * 0.6;
 
 export default function PickerScreen() {
   const { pickImage, takePhoto } = useImagePicker();
-  const { imageUri } = useProjectStore();
+  const { imageUri, imageDimensions } = useProjectStore();
+  const gridEnabled = useGridStore((s) => s.enabled);
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const paywallRef = useRef<BottomSheetModal>(null);
+  const gridSheetRef = useRef<BottomSheetModal>(null);
   const canvasRef = useRef<ColorSkiaCanvasRef>(null);
 
   // Layout State
@@ -219,12 +224,24 @@ export default function PickerScreen() {
                   subtitle="Pick & Mix"
                   className="mb-6" // 24pt margin (mb-6 = 24px)
                   rightAction={
-                    <Pressable
-                      onPress={pickImage}
-                      className="w-10 h-10 items-center justify-center rounded-full bg-[#1C1C1E] border border-[#28282A] active:opacity-70"
-                    >
-                      <ImagePlus size={20} color="#FFFFFF" />
-                    </Pressable>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <Pressable
+                        onPress={() => gridSheetRef.current?.present()}
+                        className="w-10 h-10 items-center justify-center rounded-full border active:opacity-70"
+                        style={{
+                          backgroundColor: gridEnabled ? '#1C3A1C' : '#1C1C1E',
+                          borderColor: gridEnabled ? '#22C55E' : '#28282A',
+                        }}
+                      >
+                        <Grid3x3 size={20} color={gridEnabled ? '#22C55E' : '#FFFFFF'} />
+                      </Pressable>
+                      <Pressable
+                        onPress={pickImage}
+                        className="w-10 h-10 items-center justify-center rounded-full bg-[#1C1C1E] border border-[#28282A] active:opacity-70"
+                      >
+                        <ImagePlus size={20} color="#FFFFFF" />
+                      </Pressable>
+                    </View>
                   }
                 />
 
@@ -253,6 +270,12 @@ export default function PickerScreen() {
                           ref={canvasRef}
                           width={canvasLayout.width}
                           height={canvasLayout.height}
+                        />
+                        <GridOverlay
+                          width={canvasLayout.width}
+                          height={canvasLayout.height}
+                          imageWidth={imageDimensions?.width ?? 0}
+                          imageHeight={imageDimensions?.height ?? 0}
                         />
                       </Animated.View>
                     </GestureDetector>
@@ -328,6 +351,7 @@ export default function PickerScreen() {
                   }}
                 />
                 <PaywallModal ref={paywallRef} />
+                <GridSelectorSheet ref={gridSheetRef} />
               </View>
             </SafeAreaView>
           </Animated.View>
