@@ -1,7 +1,7 @@
 import { useProjectStore } from '@/store/useProjectStore';
-import { Canvas, Image, Skia, SkImage, useCanvasRef } from '@shopify/react-native-skia';
-import React, { forwardRef, useImperativeHandle, useState } from 'react';
-import { ActivityIndicator, Dimensions, PixelRatio, View } from 'react-native';
+import { Canvas, Image, Skia, SkImage } from '@shopify/react-native-skia';
+import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
+import { ActivityIndicator, Dimensions, LayoutChangeEvent, View } from 'react-native';
 import { AppText } from './AppText';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -21,15 +21,31 @@ interface ColorSkiaCanvasProps {
 }
 
 export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef, ColorSkiaCanvasProps>((props, ref) => {
-    const { width = CANVAS_WIDTH, height = CANVAS_HEIGHT, onImageLoaded } = props;
+    const { width: rawWidth = CANVAS_WIDTH, height: rawHeight = CANVAS_HEIGHT, onImageLoaded } = props;
     const { imageUri } = useProjectStore();
+
+    // Guard: Metal will SIGABRT if texture dimensions are 0, negative, or NaN.
+    const width = Number.isFinite(rawWidth) && rawWidth > 0 ? rawWidth : 1;
+    const height = Number.isFinite(rawHeight) && rawHeight > 0 ? rawHeight : 1;
+
+    // Defer <Canvas> mount until the wrapper View has been laid out natively.
+    // JS props may be valid numbers, but the native view may not have dimensions yet.
+    // If Skia's RNSkOffscreenCanvasProvider reads 0 from the native layout,
+    // Metal receives UINT64_MAX and SIGABRT.
+    const [nativeLayoutReady, setNativeLayoutReady] = useState(false);
+    const handleLayout = React.useCallback((e: LayoutChangeEvent) => {
+        const { width: lw, height: lh } = e.nativeEvent.layout;
+        if (lw > 0 && lh > 0) {
+            setNativeLayoutReady(true);
+        }
+    }, []);
 
     // Manual Image Loading State
     const [skiaImage, setSkiaImage] = useState<SkImage | null>(null);
     const [hasError, setHasError] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string>('');
 
-    const internalCanvasRef = useCanvasRef();
+    const internalCanvasRef = useRef<any>(null);
 
     React.useEffect(() => {
         if (!imageUri) return;
@@ -37,7 +53,11 @@ export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef, ColorSkiaCanvasPro
         console.log('🎨 ColorSkiaCanvas - Starting manual load for:', imageUri);
         setHasError(false);
         setErrorMessage('');
-        setSkiaImage(null); // Reset previous image
+        setSkiaImage(null); // Reset previous image — unmounts Canvas
+        // Note: do NOT reset nativeLayoutReady here. onLayout only fires when
+        // dimensions change, not on re-render. The layout was already validated
+        // on first mount — resetting it would cause the component to get stuck
+        // waiting for an onLayout that never fires.
 
         const load = async () => {
             try {
@@ -80,13 +100,13 @@ export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef, ColorSkiaCanvasPro
             return skiaImage || null;
         },
         getPixelColor: (x: number, y: number) => {
-            if (!skiaImage || !internalCanvasRef.current) return null;
+            if (!skiaImage) return null;
 
             // 1. Calculate Layout Metrics
             const imgW = skiaImage.width();
             const imgH = skiaImage.height();
-            const C_W = props.width || CANVAS_WIDTH;
-            const C_H = props.height || CANVAS_HEIGHT;
+            const C_W = width;
+            const C_H = height;
             const scale = Math.min(C_W / imgW, C_H / imgH);
             const displayW = imgW * scale;
             const displayH = imgH * scale;
@@ -98,48 +118,51 @@ export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef, ColorSkiaCanvasPro
                 return null;
             }
 
-            // 3. Read Pixel from Canvas Snapshot
-            //    Guard: ensure canvas has valid layout dimensions before calling
-            //    makeImageSnapshot — Metal will SIGABRT on 0 or negative sizes,
-            //    and JS try/catch cannot intercept a native abort.
-            let snapshot;
-            try {
-                const canvasNode = internalCanvasRef.current;
-                if (!canvasNode || typeof canvasNode.makeImageSnapshot !== 'function') return null;
-                snapshot = canvasNode.makeImageSnapshot();
-            } catch {
-                return null; // Skia view not ready yet
+            // 3. Read pixel directly from the source SkImage.
+            //    Previously this used makeImageSnapshot() on the Canvas, which
+            //    creates an offscreen Metal surface — if the Canvas view has
+            //    invalid native dimensions (0 or uninitialised), Metal receives
+            //    UINT64_MAX and triggers a SIGABRT that JS cannot catch.
+            //    Reading from the SkImage itself avoids Metal entirely.
+            const srcX = Math.round(((x - offsetX) / displayW) * imgW);
+            const srcY = Math.round(((y - offsetY) / displayH) * imgH);
+
+            if (srcX < 0 || srcX >= imgW || srcY < 0 || srcY >= imgH) {
+                return null;
             }
-            if (snapshot) {
-                const density = PixelRatio.get();
-                const physicalX = Math.round(x * density);
-                const physicalY = Math.round(y * density);
 
-                if (physicalX < 0 || physicalX >= snapshot.width() || physicalY < 0 || physicalY >= snapshot.height()) {
-                    return null;
-                }
-
-                const pixelData = snapshot.readPixels(physicalX, physicalY, {
+            try {
+                const pixelData = skiaImage.readPixels(srcX, srcY, {
                     width: 1,
                     height: 1,
-                    colorType: 4,
-                    alphaType: 1,
+                    colorType: 4, // RGBA 8888
+                    alphaType: 1, // premul
                 } as any);
                 const pixels = pixelData ? new Uint8Array(pixelData.buffer ?? pixelData) : null;
-                if (!pixels) return null;
+                if (!pixels || pixels.length < 3) return null;
 
                 if (pixels[3] !== 0 || pixels[0] !== 0) {
                     return { r: pixels[0], g: pixels[1], b: pixels[2] };
                 }
+            } catch {
+                return null;
             }
             return null;
         }
-    }));
+    }), [skiaImage, width, height]);
+
+    // Gate Canvas mount on native layout only — NOT on skiaImage.
+    // Once mounted, the Canvas stays mounted and we swap the <Image> inside it.
+    // This avoids destroying/recreating Metal textures on every image change,
+    // which is what triggers the SIGABRT when the new Canvas view hasn't been
+    // laid out yet by the native layout system.
+    const canMountCanvas = nativeLayoutReady && width > 1 && height > 1;
 
     if (hasError) {
         return (
             <View
-                style={{ width: props.width || CANVAS_WIDTH, height: props.height || CANVAS_HEIGHT }}
+                onLayout={handleLayout}
+                style={{ width, height }}
                 className="justify-center items-center bg-[#1C1C1E] p-4"
             >
                 <ActivityIndicator size="small" color="#EF4444" />
@@ -150,10 +173,11 @@ export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef, ColorSkiaCanvasPro
         );
     }
 
-    if (!imageUri || !skiaImage) {
+    if (!canMountCanvas) {
         return (
             <View
-                style={{ width: props.width || CANVAS_WIDTH, height: props.height || CANVAS_HEIGHT }}
+                onLayout={handleLayout}
+                style={{ width, height }}
                 className="justify-center items-center bg-[#1C1C1E]"
             >
                 <ActivityIndicator size="large" color="#A1A1AA" />
@@ -162,26 +186,27 @@ export const ColorSkiaCanvas = forwardRef<ColorSkiaCanvasRef, ColorSkiaCanvasPro
         );
     }
 
-    // Calculate layout for render
-    const imgW = skiaImage.width();
-    const imgH = skiaImage.height();
-    const C_W = props.width || CANVAS_WIDTH;
-    const C_H = props.height || CANVAS_HEIGHT;
-
     return (
-        <View style={{ width: C_W, height: C_H }} className="overflow-hidden relative">
+        <View onLayout={handleLayout} style={{ width, height }} className="overflow-hidden relative">
+            {/* Loading overlay while image is decoding */}
+            {(!imageUri || !skiaImage) && (
+                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 }} className="justify-center items-center bg-[#1C1C1E]">
+                    <ActivityIndicator size="large" color="#A1A1AA" />
+                    <AppText className="text-stone-500 mt-4 text-xs font-medium">Rendering...</AppText>
+                </View>
+            )}
             <Canvas
                 ref={internalCanvasRef}
-                style={{ width: C_W, height: C_H }}
+                style={{ width, height }}
             >
                 {skiaImage && (
                     <Image
                         image={skiaImage}
-                        fit="contain" // Changed from cover to contain to show full image
+                        fit="contain"
                         x={0}
                         y={0}
-                        width={C_W}
-                        height={C_H}
+                        width={width}
+                        height={height}
                     />
                 )}
             </Canvas>
