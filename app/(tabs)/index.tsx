@@ -55,8 +55,11 @@ export default function HomeScreen() {
             } else if (data) {
                 const items: GalleryItem[] = data.map(p => ({
                     id: p.id,
+                    name: p.name,
                     imageUrl: p.image_url || 'https://via.placeholder.com/400',
-                    colors: p.colors
+                    colors: p.colors,
+                    type: p.type || 'palette',
+                    effects: p.effects,
                 }));
                 setGalleryItems(items);
             }
@@ -67,33 +70,47 @@ export default function HomeScreen() {
         }
     };
 
-    const handleOpenInStudio = (item: GalleryItem) => {
+    const handleOpenItem = (item: GalleryItem) => {
         try {
             const store = require('@/store/useProjectStore').useProjectStore;
-            // Sync colorCount to nearest preset to match the saved palette
+            const colors = item.colors ?? [];
             const presets = [4, 6, 8, 12];
-            const closest = presets.reduce((prev, curr) =>
-                Math.abs(curr - item.colors.length) < Math.abs(prev - item.colors.length) ? curr : prev
-            );
-            // Set everything in a single atomic update to avoid intermediate renders
-            // where generatedPalette is empty (which would trigger auto-generate)
+            const closest = colors.length > 0
+                ? presets.reduce((prev, curr) =>
+                    Math.abs(curr - colors.length) < Math.abs(prev - colors.length) ? curr : prev
+                )
+                : 6;
             store.setState({
                 imageUri: item.imageUrl,
                 imageDimensions: null,
                 isUploading: false,
                 pickedColors: [],
-                generatedPalette: item.colors,
+                generatedPalette: colors,
                 colorCount: closest,
                 isPaletteDirty: false,
                 isFromSavedPalette: true,
+                restoredEffects: item.effects ?? null,
+                restoredSaveType: item.type ?? 'palette',
             });
             setSelectedItem(null);
             detailModalRef.current?.dismiss();
             setTimeout(() => {
-                router.push('/(tabs)/palette');
+                let target: string;
+                switch (item.type) {
+                    case 'squint':
+                    case 'valuemap':
+                        target = '/(tabs)/tools';
+                        break;
+                    case 'studio':
+                        target = '/(tabs)/studio';
+                        break;
+                    default:
+                        target = '/(tabs)/palette';
+                }
+                router.push(target as any);
             }, 300);
         } catch (e) {
-            console.error('Failed to open in studio:', e);
+            console.error('Failed to open item:', e);
         }
     };
 
@@ -102,10 +119,11 @@ export default function HomeScreen() {
         detailModalRef.current?.present();
     };
 
-    const handleDeletePalette = (item: GalleryItem) => {
+    const handleDeleteItem = (item: GalleryItem) => {
+        const label = item.type === 'palette' ? 'palette' : 'saved image';
         Alert.alert(
-            'Delete Palette?',
-            'This will permanently delete the palette and its reference image. This cannot be undone.',
+            `Delete ${label}?`,
+            `This will permanently delete this ${label} and its image. This cannot be undone.`,
             [
                 { text: 'Cancel', style: 'cancel' },
                 {
@@ -121,10 +139,10 @@ export default function HomeScreen() {
                         if (error) {
                             console.error('Delete failed:', error);
                             setGalleryItems(previous);
-                            showToast('Could not delete palette. Please try again.');
+                            showToast(`Could not delete ${label}. Please try again.`);
                             return;
                         }
-                        showToast('Palette deleted.');
+                        showToast('Deleted.');
                     },
                 },
             ],
@@ -187,7 +205,7 @@ export default function HomeScreen() {
             <Animated.View entering={FadeInDown.delay(100).duration(400)} style={styles.statsStrip}>
                 <View style={styles.statItem}>
                     <AppText style={styles.statValue}>{galleryItems.length}</AppText>
-                    <AppText style={styles.statLabel}>Palettes</AppText>
+                    <AppText style={styles.statLabel}>Saves</AppText>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.statItem}>
@@ -257,7 +275,7 @@ export default function HomeScreen() {
 
             {/* Section Title */}
             {galleryItems.length > 0 && (
-                <AppText style={styles.sectionTitle}>SAVED PALETTES</AppText>
+                <AppText style={styles.sectionTitle}>YOUR COLLECTION</AppText>
             )}
         </View>
     );
@@ -305,8 +323,8 @@ export default function HomeScreen() {
                     item={selectedItem}
                     onClose={() => setSelectedItem(null)}
                     onShare={handleShare}
-                    onOpenInStudio={handleOpenInStudio}
-                    onDelete={handleDeletePalette}
+                    onOpenInStudio={handleOpenItem}
+                    onDelete={handleDeleteItem}
                     canDelete={isPro}
                 />
 

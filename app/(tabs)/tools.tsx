@@ -1,4 +1,5 @@
 import { AppHeader } from '@/components/AppHeader';
+import { AppText } from '@/components/AppText';
 import { PaywallModal } from '@/components/PaywallModal';
 import { SceneTransition } from '@/components/SceneTransition';
 import { SquintCanvas } from '@/components/SquintCanvas';
@@ -7,14 +8,15 @@ import { UploadPlaceholderView } from '@/components/UploadPlaceholderView';
 import { ValueControls } from '@/components/ValueControls';
 import { ValueMapCanvas } from '@/components/ValueMapCanvas';
 import { usePro } from '@/context/ProContext';
+import { useImageSave } from '@/hooks/useImageSave';
 import { useUpgradeFlow } from '@/hooks/useUpgradeFlow';
 import { useImagePicker } from '@/services/useImagePicker';
 import { useProjectStore } from '@/store/useProjectStore';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
-import React, { useState } from 'react';
-import { Dimensions, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Save } from 'lucide-react-native';
+import React, { useRef, useState } from 'react';
+import { ActivityIndicator, Dimensions, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppText } from '@/components/AppText';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CANVAS_WIDTH = SCREEN_WIDTH - 48;
@@ -74,21 +76,58 @@ const segStyles = StyleSheet.create({
 });
 
 export default function ToolsScreen() {
-    const { imageUri } = useProjectStore();
+    const { imageUri, restoredEffects, restoredSaveType, clearRestoredEffects } = useProjectStore();
     const { pickImage } = useImagePicker();
     const { isPro } = usePro();
     const { triggerUpgradeFlow } = useUpgradeFlow();
     const paywallRef = React.useRef<BottomSheetModal>(null);
 
-    const [activeTab, setActiveTab] = useState<ToolTab>('squint');
+    const [activeTab, setActiveTab] = useState<ToolTab>(
+        restoredSaveType === 'valuemap' ? 'valuemap' : 'squint'
+    );
 
-    // Squint state
-    const [blurIntensity, setBlurIntensity] = useState(0);
+    // Squint state — restore from saved effects if available
+    const [blurIntensity, setBlurIntensity] = useState(
+        restoredSaveType === 'squint' && restoredEffects?.blur != null
+            ? restoredEffects.blur
+            : 0
+    );
     const MAX_BLUR = 50;
 
-    // Value Map state
-    const [grayscaleEnabled, setGrayscaleEnabled] = useState(false);
-    const [temperatureEnabled, setTemperatureEnabled] = useState(false);
+    // Value Map state — restore from saved effects if available
+    const [grayscaleEnabled, setGrayscaleEnabled] = useState(
+        restoredSaveType === 'valuemap' ? !!restoredEffects?.grayscale : false
+    );
+    const [temperatureEnabled, setTemperatureEnabled] = useState(
+        restoredSaveType === 'valuemap' ? !!restoredEffects?.temperature : false
+    );
+
+    // Skia canvas refs for thumbnail snapshots
+    const squintCanvasRef = useRef<any>(null);
+    const valuemapCanvasRef = useRef<any>(null);
+
+    // Clear restored effects after applying them
+    React.useEffect(() => {
+        if (restoredEffects && (restoredSaveType === 'squint' || restoredSaveType === 'valuemap')) {
+            clearRestoredEffects();
+        }
+    }, []);
+
+    // Save hooks
+    const squintSave = useImageSave({
+        type: 'squint',
+        getEffects: () => ({ blur: blurIntensity }),
+        onUpgradeNeeded: () => paywallRef.current?.present(),
+        skiaCanvasRef: squintCanvasRef,
+    });
+    const valuemapSave = useImageSave({
+        type: 'valuemap',
+        getEffects: () => ({ grayscale: grayscaleEnabled, temperature: temperatureEnabled }),
+        onUpgradeNeeded: () => paywallRef.current?.present(),
+        skiaCanvasRef: valuemapCanvasRef,
+    });
+
+    const activeSave = activeTab === 'squint' ? squintSave : valuemapSave;
 
     const handleTemperatureToggle = (value: boolean) => {
         if (!isPro && value) {
@@ -131,6 +170,28 @@ export default function ToolsScreen() {
                         title="Tonal Analysis"
                         subtitle={subtitle}
                         className="mb-0 z-10 bg-[#0A0A0B]"
+                        rightAction={
+                            <Pressable
+                                onPress={activeSave.save}
+                                disabled={activeSave.isSaving}
+                                style={{
+                                    width: 40,
+                                    height: 40,
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    borderRadius: 20,
+                                    backgroundColor: '#3E63DD',
+                                    borderWidth: 1,
+                                    borderColor: '#3E63DD',
+                                }}
+                            >
+                                {activeSave.isSaving ? (
+                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                ) : (
+                                    <Save size={18} color="#FFFFFF" />
+                                )}
+                            </Pressable>
+                        }
                     />
 
                     <SegmentedControl activeTab={activeTab} onTabChange={setActiveTab} />
@@ -156,12 +217,14 @@ export default function ToolsScreen() {
                         >
                             {activeTab === 'squint' ? (
                                 <SquintCanvas
+                                    ref={squintCanvasRef}
                                     blurIntensity={blurIntensity}
                                     width={CANVAS_WIDTH}
                                     height={CANVAS_HEIGHT}
                                 />
                             ) : (
                                 <ValueMapCanvas
+                                    ref={valuemapCanvasRef}
                                     grayscaleEnabled={grayscaleEnabled}
                                     temperatureEnabled={temperatureEnabled}
                                     width={CANVAS_WIDTH}
@@ -190,6 +253,22 @@ export default function ToolsScreen() {
                 </View>
                 <PaywallModal ref={paywallRef} />
             </SafeAreaView>
+
+            {/* Fullscreen saving overlay */}
+            {activeSave.isSaving && (
+                <View style={{
+                    ...StyleSheet.absoluteFillObject,
+                    backgroundColor: 'rgba(0,0,0,0.7)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 999,
+                }}>
+                    <ActivityIndicator size="large" color="#FFFFFF" />
+                    <AppText style={{ fontFamily: 'Inter_500Medium', fontSize: 16, color: '#FFFFFF', marginTop: 16 }}>
+                        Saving...
+                    </AppText>
+                </View>
+            )}
         </SceneTransition>
     );
 }

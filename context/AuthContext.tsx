@@ -83,30 +83,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const deleteAccount = async () => {
         try {
-            // 1. Clean up the user's reference images from R2 + Supabase Storage
-            //    Best-effort with 10s timeout — never blocks account deletion
-            try {
-                const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 10000);
-                await supabase.functions.invoke('delete-user-storage', {
-                    body: {},
-                }).then(({ error: cleanupErr }) => {
-                    clearTimeout(timeout);
-                    if (cleanupErr) console.warn('[deleteAccount] storage cleanup failed:', cleanupErr);
-                }).catch(() => {
-                    clearTimeout(timeout);
-                });
-            } catch (e) {
-                console.warn('[deleteAccount] storage cleanup skipped:', e);
-            }
+            // 1. Clean up storage — fire-and-forget, never blocks deletion
+            supabase.functions.invoke('delete-user-storage', { body: {} })
+                .then(({ error: e }) => e && console.warn('[deleteAccount] storage cleanup failed:', e))
+                .catch((e) => console.warn('[deleteAccount] storage cleanup skipped:', e));
 
-            // 2. Call Supabase RPC to delete user data & auth
-            const { error } = await supabase.rpc('delete_user');
+            // 2. Call Supabase RPC to delete user data & auth (with 15s timeout)
+            const rpcPromise = supabase.rpc('delete_user');
+            const timeoutPromise = new Promise<{ error: Error }>((resolve) =>
+                setTimeout(() => resolve({ error: new Error('Delete timed out') }), 15000)
+            );
+            const { error } = await Promise.race([rpcPromise, timeoutPromise]);
             if (error) throw error;
 
             // 3. Reset onboarding so next signup shows onboarding flow
-            //    Don't removeItem — _layout.tsx treats missing key as "existing user updating app"
-            //    Instead, persist the reset state so hasCompletedOnboarding = false is stored
             useOnboardingStore.getState().resetOnboarding();
 
             // 4. Sign Out locally to clean up state

@@ -7,22 +7,28 @@ interface ImageDimensions {
     height: number;
 }
 
+import { SaveType } from '@/services/paletteService';
+
 interface ProjectState {
     // Existing Image State
     imageUri: string | null;
     imageDimensions: ImageDimensions | null;
     isUploading: boolean;
     setImage: (uri: string, dimensions: ImageDimensions) => void;
-    setImageUri: (uri: string) => void; // Keeping for compatibility if I used it elsewhere, but setImage covers it
+    setImageUri: (uri: string) => void;
     setUploading: (loading: boolean) => void;
     resetProject: () => void;
 
     // Palette Data
-    pickedColors: string[]; // Manual picks
-    generatedPalette: string[]; // Auto-generated
-    colorCount: number; // Preference (3-12)
-    isPaletteDirty: boolean; // True when palette has unsaved changes
-    isFromSavedPalette: boolean; // True when viewing a palette loaded from saved data
+    pickedColors: string[];
+    generatedPalette: string[];
+    colorCount: number;
+    isPaletteDirty: boolean;
+    isFromSavedPalette: boolean;
+
+    // Restored save state (set when opening a saved item from Home)
+    restoredEffects: Record<string, any> | null;
+    restoredSaveType: SaveType | null;
 
     addPickedColor: (color: string) => void;
     removePickedColor: (color: string) => void;
@@ -30,6 +36,7 @@ interface ProjectState {
     setColorCount: (count: number) => void;
     markPaletteSaved: () => void;
     markPaletteClean: () => void;
+    clearRestoredEffects: () => void;
 }
 
 export const useProjectStore = create<ProjectState>()(
@@ -49,6 +56,8 @@ export const useProjectStore = create<ProjectState>()(
                 generatedPalette: [],
                 isPaletteDirty: false,
                 isFromSavedPalette: false,
+                restoredEffects: null,
+                restoredSaveType: null,
             }),
 
             pickedColors: [],
@@ -56,6 +65,10 @@ export const useProjectStore = create<ProjectState>()(
             colorCount: 6,
             isPaletteDirty: false,
             isFromSavedPalette: false,
+
+            restoredEffects: null,
+            restoredSaveType: null,
+            clearRestoredEffects: () => set({ restoredEffects: null, restoredSaveType: null }),
 
             addPickedColor: (color) => set((state) => ({ pickedColors: [...state.pickedColors, color] })),
             removePickedColor: (color) => set((state) => ({ pickedColors: state.pickedColors.filter(c => c !== color) })),

@@ -1,13 +1,18 @@
 
 import { useProjectStore } from '@/store/useProjectStore';
-import { Canvas, ColorMatrix, Group, Image, Paint, useImage } from '@shopify/react-native-skia';
-import React, { forwardRef, useMemo } from 'react';
+import { Canvas, ColorMatrix, Group, Image, Paint, SkImage, useImage } from '@shopify/react-native-skia';
+import React, { forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
 import { Dimensions, View } from 'react-native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const DEFAULT_WIDTH = SCREEN_WIDTH;
 const DEFAULT_HEIGHT = SCREEN_HEIGHT * 0.5;
+
+export interface SkiaCanvasSnapshotRef {
+    makeImageSnapshot: () => SkImage | null;
+    makeImageSnapshotAsync: () => Promise<SkImage | null>;
+}
 
 interface ValueMapCanvasProps {
     grayscaleEnabled: boolean;
@@ -16,8 +21,29 @@ interface ValueMapCanvasProps {
     height?: number;
 }
 
-export const ValueMapCanvas = forwardRef<any, ValueMapCanvasProps>(
+export const ValueMapCanvas = forwardRef<SkiaCanvasSnapshotRef, ValueMapCanvasProps>(
     ({ grayscaleEnabled, temperatureEnabled, width, height }, ref) => {
+        const canvasRef = useRef<any>(null);
+
+        useImperativeHandle(ref, () => ({
+            makeImageSnapshot: () => {
+                try {
+                    return canvasRef.current?.makeImageSnapshot() ?? null;
+                } catch (e) {
+                    console.warn('[ValueMapCanvas] makeImageSnapshot failed:', e);
+                    return null;
+                }
+            },
+            makeImageSnapshotAsync: async () => {
+                try {
+                    return (await canvasRef.current?.makeImageSnapshotAsync()) ?? null;
+                } catch (e) {
+                    console.warn('[ValueMapCanvas] makeImageSnapshotAsync failed:', e);
+                    return null;
+                }
+            },
+        }));
+
         const { imageUri } = useProjectStore();
         const skiaImage = useImage(imageUri || '');
 
@@ -37,7 +63,7 @@ export const ValueMapCanvas = forwardRef<any, ValueMapCanvasProps>(
 
         // Temperature Map Matrix (Fallback to ColorMatrix)
         // Since Shaders are unstable on this device, we use a Channel Difference Matrix.
-        // Concept: 
+        // Concept:
         // Red Channel = Red - Blue (Shows Warmth)
         // Blue Channel = Blue - Red (Shows Coolness)
         // Green Channel = Dampened for contrast
@@ -89,7 +115,7 @@ export const ValueMapCanvas = forwardRef<any, ValueMapCanvasProps>(
                     overflow: 'hidden'
                 }}
             >
-                <Canvas style={{ width: C_W, height: C_H }}>
+                <Canvas ref={canvasRef} style={{ width: C_W, height: C_H }}>
                     {/* Position the drawing group */}
                     <Group
                         transform={[
@@ -98,7 +124,7 @@ export const ValueMapCanvas = forwardRef<any, ValueMapCanvasProps>(
                             { scale: scale }
                         ]}
                     >
-                        {/* 
+                        {/*
                             Layering:
                             We apply composed filters via nested Groups/Paints or sequenced logic.
                             Since we have two matrices (Grayscale and Temperature), we can't easily chain them
@@ -113,9 +139,9 @@ export const ValueMapCanvas = forwardRef<any, ValueMapCanvasProps>(
                             </Paint>
                         }>
                             {/* Layer 2: Temperature (Outer) */}
-                            {/* Note: Temperature usually wants color info, so maybe it should apply first? 
+                            {/* Note: Temperature usually wants color info, so maybe it should apply first?
                                 Actually, if we grayscale first, R=G=B, so R-B = 0.
-                                Temperature Map needs COLOR data. 
+                                Temperature Map needs COLOR data.
                                 So Temperature must apply FIRST (Inner), or be mutually exclusive?
                                 The UI allows both. If both ON, grayscale of a heatmap?
                                 Let's nest Temperature INSIDE Grayscale.

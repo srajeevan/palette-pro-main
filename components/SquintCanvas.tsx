@@ -1,6 +1,6 @@
 import { useProjectStore } from '@/store/useProjectStore';
-import { Blur, Canvas, Group, Image, Paint, useImage } from '@shopify/react-native-skia';
-import React, { forwardRef } from 'react';
+import { Blur, Canvas, Group, Image, Paint, SkImage, useImage } from '@shopify/react-native-skia';
+import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { Dimensions, View } from 'react-native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -9,13 +9,39 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const DEFAULT_WIDTH = SCREEN_WIDTH;
 const DEFAULT_HEIGHT = SCREEN_HEIGHT * 0.5;
 
+export interface SkiaCanvasSnapshotRef {
+    makeImageSnapshot: () => SkImage | null;
+    makeImageSnapshotAsync: () => Promise<SkImage | null>;
+}
+
 interface SquintCanvasProps {
     blurIntensity: number;
     width?: number;
     height?: number;
 }
 
-export const SquintCanvas = forwardRef<any, SquintCanvasProps>(({ blurIntensity, width, height }, ref) => {
+export const SquintCanvas = forwardRef<SkiaCanvasSnapshotRef, SquintCanvasProps>(({ blurIntensity, width, height }, ref) => {
+    const canvasRef = useRef<any>(null);
+
+    useImperativeHandle(ref, () => ({
+        makeImageSnapshot: () => {
+            try {
+                return canvasRef.current?.makeImageSnapshot() ?? null;
+            } catch (e) {
+                console.warn('[SquintCanvas] makeImageSnapshot failed:', e);
+                return null;
+            }
+        },
+        makeImageSnapshotAsync: async () => {
+            try {
+                return (await canvasRef.current?.makeImageSnapshotAsync()) ?? null;
+            } catch (e) {
+                console.warn('[SquintCanvas] makeImageSnapshotAsync failed:', e);
+                return null;
+            }
+        },
+    }));
+
     const { imageUri } = useProjectStore();
     const skiaImage = useImage(imageUri || '');
 
@@ -57,6 +83,7 @@ export const SquintCanvas = forwardRef<any, SquintCanvasProps>(({ blurIntensity,
             }}
         >
             <Canvas
+                ref={canvasRef}
                 style={{ width: C_W, height: C_H }}
             >
                 {/* Image with Blur Filter */}

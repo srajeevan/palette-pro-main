@@ -9,6 +9,7 @@ import { PaywallModal } from '@/components/PaywallModal';
 import { SceneTransition } from '@/components/SceneTransition';
 import { UploadBottomSheet } from '@/components/UploadBottomSheet';
 import { UploadPlaceholderView } from '@/components/UploadPlaceholderView';
+import { useImageSave } from '@/hooks/useImageSave';
 import { useImagePicker } from '@/services/useImagePicker';
 import { useGridStore } from '@/store/useGridStore';
 import { useProjectStore } from '@/store/useProjectStore';
@@ -16,9 +17,9 @@ import { getContrastColor } from '@/utils/colorUtils';
 import { calculateMix, MixResult } from '@/utils/mixingEngine';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useIsFocused } from '@react-navigation/native';
-import { Grid3x3, ImagePlus } from 'lucide-react-native';
+import { Grid3x3, ImagePlus, Save } from 'lucide-react-native';
 import React, { useCallback, useRef, useState } from 'react';
-import { Dimensions, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Dimensions, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { FadeIn, FadeOut, runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -33,12 +34,40 @@ const INITIAL_HEIGHT = SCREEN_HEIGHT * 0.6;
 
 export default function PickerScreen() {
   const { pickImage, takePhoto } = useImagePicker();
-  const { imageUri, imageDimensions } = useProjectStore();
-  const gridEnabled = useGridStore((s) => s.enabled);
+  const { imageUri, imageDimensions, restoredEffects, restoredSaveType, clearRestoredEffects } = useProjectStore();
+  const gridState = useGridStore();
+  const gridEnabled = gridState.enabled;
+
+  // Restore grid settings when opening a saved studio item
+  React.useEffect(() => {
+    if (restoredSaveType === 'studio' && restoredEffects) {
+      if (restoredEffects.grid) {
+        const { STANDARD_GRIDS } = require('@/store/useGridStore');
+        const match = STANDARD_GRIDS.find((g: any) => g.label === restoredEffects.grid);
+        if (match) gridState.selectGrid(match);
+      }
+      if (restoredEffects.gridColor) {
+        gridState.setGridColor(restoredEffects.gridColor);
+      }
+      clearRestoredEffects();
+    }
+  }, []);
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const paywallRef = useRef<BottomSheetModal>(null);
   const gridSheetRef = useRef<BottomSheetModal>(null);
   const canvasRef = useRef<ColorSkiaCanvasRef>(null);
+
+  const { thumbnailRef, isSaving, save: saveImage } = useImageSave({
+    type: 'studio',
+    getEffects: () => {
+      if (!gridEnabled) return null;
+      return {
+        grid: gridState.selectedGrid?.label ?? null,
+        gridColor: gridState.gridColor,
+      };
+    },
+    onUpgradeNeeded: () => paywallRef.current?.present(),
+  });
 
   // Layout State
   // Layout State
@@ -226,6 +255,26 @@ export default function PickerScreen() {
                   rightAction={
                     <View style={{ flexDirection: 'row', gap: 8 }}>
                       <Pressable
+                        onPress={saveImage}
+                        disabled={isSaving}
+                        style={{
+                          width: 40,
+                          height: 40,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: 20,
+                          backgroundColor: '#3E63DD',
+                          borderWidth: 1,
+                          borderColor: '#3E63DD',
+                        }}
+                      >
+                        {isSaving ? (
+                          <ActivityIndicator size="small" color="#FFFFFF" />
+                        ) : (
+                          <Save size={18} color="#FFFFFF" />
+                        )}
+                      </Pressable>
+                      <Pressable
                         onPress={() => gridSheetRef.current?.present()}
                         className="w-10 h-10 items-center justify-center rounded-full border active:opacity-70"
                         style={{
@@ -264,21 +313,23 @@ export default function PickerScreen() {
                       setCanvasLayout({ width, height });
                     }}
                   >
-                    <GestureDetector gesture={composedGesture}>
-                      <Animated.View style={[{ width: '100%', height: '100%' }, canvasAnimatedStyle]}>
-                        <ColorSkiaCanvas
-                          ref={canvasRef}
-                          width={canvasLayout.width}
-                          height={canvasLayout.height}
-                        />
-                        <GridOverlay
-                          width={canvasLayout.width}
-                          height={canvasLayout.height}
-                          imageWidth={imageDimensions?.width ?? 0}
-                          imageHeight={imageDimensions?.height ?? 0}
-                        />
-                      </Animated.View>
-                    </GestureDetector>
+                    <View ref={thumbnailRef} collapsable={false} style={{ flex: 1 }}>
+                      <GestureDetector gesture={composedGesture}>
+                        <Animated.View style={[{ width: '100%', height: '100%' }, canvasAnimatedStyle]}>
+                          <ColorSkiaCanvas
+                            ref={canvasRef}
+                            width={canvasLayout.width}
+                            height={canvasLayout.height}
+                          />
+                          <GridOverlay
+                            width={canvasLayout.width}
+                            height={canvasLayout.height}
+                            imageWidth={imageDimensions?.width ?? 0}
+                            imageHeight={imageDimensions?.height ?? 0}
+                          />
+                        </Animated.View>
+                      </GestureDetector>
+                    </View>
 
                     <ColorPointer
                       canvasWidth={canvasLayout.width}
@@ -355,6 +406,22 @@ export default function PickerScreen() {
               </View>
             </SafeAreaView>
           </Animated.View>
+        )}
+
+        {/* Fullscreen saving overlay */}
+        {isSaving && (
+          <View style={{
+            ...StyleSheet.absoluteFillObject,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 999,
+          }}>
+            <ActivityIndicator size="large" color="#FFFFFF" />
+            <AppText style={{ fontFamily: 'Inter_500Medium', fontSize: 16, color: '#FFFFFF', marginTop: 16 }}>
+              Saving...
+            </AppText>
+          </View>
         )}
       </View>
     </SceneTransition>

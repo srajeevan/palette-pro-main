@@ -15,7 +15,8 @@ import {
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const IMAGE_HEIGHT = SCREEN_HEIGHT * 0.42;
 
 const FEATURES = [
     {
@@ -227,7 +228,7 @@ const styles = StyleSheet.create({
         borderColor: '#28282A',
     },
     imageWrapper: {
-        flex: 1,
+        height: IMAGE_HEIGHT,
         overflow: 'hidden',
         backgroundColor: '#0A0A0B',
         borderTopLeftRadius: 20,

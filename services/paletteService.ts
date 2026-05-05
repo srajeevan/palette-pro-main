@@ -1,19 +1,25 @@
 import { supabase } from '@/lib/supabase';
 
+export type SaveType = 'palette' | 'studio' | 'squint' | 'valuemap';
+
 export interface Palette {
     id: string;
     user_id: string;
     name: string;
-    colors: string[];
+    colors: string[] | null;
     image_url: string | null;
+    type: SaveType;
+    effects: Record<string, any> | null;
     created_at: string;
     updated_at: string;
 }
 
 export interface SavePaletteInput {
     name: string;
-    colors: string[];
+    colors?: string[] | null;
     image_url?: string | null;
+    type?: SaveType;
+    effects?: Record<string, any> | null;
 }
 
 /**
@@ -34,8 +40,10 @@ export async function savePalette(input: SavePaletteInput): Promise<{ data: Pale
             .insert({
                 user_id: user.id,
                 name: input.name,
-                colors: input.colors,
+                colors: input.colors ?? null,
                 image_url: input.image_url || null,
+                type: input.type || 'palette',
+                effects: input.effects ?? null,
             })
             .select()
             .single();

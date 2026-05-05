@@ -8,6 +8,13 @@ import React, { forwardRef, useMemo } from 'react';
 import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+const TYPE_LABELS: Record<string, string> = {
+    palette: 'Palette Details',
+    studio: 'Studio Capture',
+    squint: 'Squint Capture',
+    valuemap: 'Value Map Capture',
+};
+
 interface GalleryDetailModalProps {
     item: GalleryItem | null;
     onClose: () => void;
@@ -37,7 +44,7 @@ export const GalleryDetailModal = forwardRef<BottomSheetModal, GalleryDetailModa
                 {/* Header — fixed outside scroll */}
                 <View style={styles.header}>
                     <View>
-                        <AppText style={styles.title}>Palette Details</AppText>
+                        <AppText style={styles.title}>{TYPE_LABELS[item.type] || 'Details'}</AppText>
                         <AppText style={styles.date}>Created {new Date().toLocaleDateString()}</AppText>
                     </View>
                     <View style={styles.headerActions}>
@@ -72,18 +79,20 @@ export const GalleryDetailModal = forwardRef<BottomSheetModal, GalleryDetailModa
                         />
                     </View>
 
-                    {/* Palette Grid */}
-                    <View style={styles.paletteContainer}>
-                        {item.colors.map((color, index) => (
-                            <Animated.View
-                                key={index}
-                                entering={FadeInDown.delay(index * 50).springify()}
-                                style={{ margin: 4 }}
-                            >
-                                <PaletteSwatch color={color} index={index} onPress={() => { }} />
-                            </Animated.View>
-                        ))}
-                    </View>
+                    {/* Palette Grid (only for palette type) */}
+                    {item.colors && item.colors.length > 0 && (
+                        <View style={styles.paletteContainer}>
+                            {item.colors.map((color, index) => (
+                                <Animated.View
+                                    key={index}
+                                    entering={FadeInDown.delay(index * 50).springify()}
+                                    style={{ margin: 4 }}
+                                >
+                                    <PaletteSwatch color={color} index={index} onPress={() => { }} />
+                                </Animated.View>
+                            ))}
+                        </View>
+                    )}
 
                     {/* Action Buttons — inline, always visible */}
                     <View style={styles.actionRow}>

@@ -264,7 +264,8 @@ export default function PaletteScreen() {
                         const { data, error } = await savePalette({
                             name: name.trim(),
                             colors: generatedPalette,
-                            image_url: uploadedImageUrl
+                            image_url: uploadedImageUrl,
+                            type: 'palette',
                         });
                         setIsSaving(false);
 
@@ -286,7 +287,7 @@ export default function PaletteScreen() {
                                 console.log('⚠️ Review service skipped (likely native module missing):', e);
                             }
 
-                            showToast(`"${name}" saved to your collection!`);
+                            showToast(`"${name}" saved to Home`);
 
                             // Brief pause to let the toast register, then clean up and go home
                             setTimeout(() => {
@@ -343,10 +344,10 @@ export default function PaletteScreen() {
                                     justifyContent: 'center',
                                     borderRadius: 20,
                                     borderWidth: 1,
-                                    borderColor: '#28282A',
+                                    borderColor: isFromSavedPalette && !isPaletteDirty ? '#28282A' : '#3E63DD',
                                     backgroundColor: isFromSavedPalette && !isPaletteDirty
-                                        ? '#1C1C1E' // Muted when already saved
-                                        : isSaving ? '#1C1C1E' : '#3E63DD',
+                                        ? '#1C1C1E'
+                                        : '#3E63DD',
                                 }}
                             >
                                 {isSaving ? (
